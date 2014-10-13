@@ -1,0 +1,1372 @@
+<apex:page standardController="Task"
+	extensions="TaskController,IntrestProductsController"
+	sidebar="true"
+	title="Задача: {!CurrentTask.task.Subject}"
+	showChat="true"
+	cache="true"
+	action="{!IF(OR(CurrentTask.Opportunity.Id != null, CurrentTask.Campaign.Id != null, CurrentTask.Account.Id != null, CurrentTask.clientCase.Id != null, CurrentTask.possibleAccount.Id != null),
+            null,
+            urlFor(
+                $Action.Task.View,
+                CurrentTask.Task.Id,
+                null,
+                true)
+            )}">
+
+	<style>
+		.locationError { color: red; font-weight: strong; }
+        .employeeError { color: green; font-weight: strong; }
+        img.opportunityIcon {
+            background-image: url(/img/sprites/master.png);
+            background-position: 0 -242px;
+        }
+        img.clientIcon {
+            background-image: url(/img/icon/perAccounts16.png);
+            background-position: 0 0;
+        }
+        img.icon {
+            vertical-align: middle;
+            margin-right: 4px;
+            width: 16px;
+            height: 16px;
+        }
+        .checkImg {
+            vertical-align: middle;
+        }
+        .label {
+            margin-left: 5px;
+            color: #4a4a56;
+            font-weight: bold;
+            font-size: 91%;
+        }
+        .check {
+            margin-left: 20px;
+        }
+        .remove {
+            border: 0px !important;
+            background: url({!$Resource.ImgClose}) no-repeat !important;
+            width: 16px  !important;
+            height: 16px  !important;
+            text-indent: 2000px  !important;
+            background-size: cover !important;
+        }
+        .tip {
+            position: relative;
+        }
+        .tip .messageText {
+            font-weight: bold;
+        }
+        .tip .description {
+            padding-left: 8px
+        }
+        #clientBlockEdit.requiredInput {
+            display: inline-block;
+        }
+        .PopUpBackground {
+            background-color: black;
+            opacity: 0.2;
+            filter: alpha(opacity = 20);
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 9998;
+        }
+        .PopUpBody {
+            z-index: 9999;
+            border: 1px solid black;
+            border-radius: 3px;
+            padding: 10px;
+            background-color: white;
+            position: fixed;
+            width: 800px;
+            height: 50%;
+            left: 50%;
+            margin-left: -400px;
+            top: 30%;
+        }
+        .LikeAccountsSelect {
+			width: 160px ;
+        }
+    </style>
+
+
+    <!-- просмотр задачи -->
+    <div class="tip">
+        <apex:pageMessage severity="warning" strength="2" 
+            summary="Задача не найдна." 
+            rendered="{!isNull(CurrentTask.task.id)}">
+            <div class="description">Возможно объект был удален.</div>
+        </apex:pageMessage>
+    </div>
+
+    <apex:outputPanel rendered="{!not(isNull(CurrentTask.task.id))}">
+
+    <apex:form rendered="{!CurrentTask.Mode == 'view'}" id="showView">
+        
+        <div class="tip">
+            <div style="float:left;">
+                <apex:sectionHeader title="Задача" subtitle="Просмотр задачи"/>
+               <!--  <apex:pageMessage severity="error" strength="3" 
+                        summary="Внимание." >
+                    <div class="description">Расскажи клиенту про игру. Вся информация <a href='http://bmplay.ru'>bmplay.ru</a></div>
+                </apex:pageMessage>  -->
+            </div>
+            <!-- <div style="float:left; padding-top: 15px">
+                <apex:pageMessage severity="error" strength="3" 
+                        summary="Внимание." >
+                    <div class="description">Расскажи клиенту про игру. Вся информация <a href='http://bmplay.ru'>bmplay.ru</a></div>
+                </apex:pageMessage> 
+            </div> -->
+            <div style="float:right; padding-top: 15px">
+                
+                <apex:pageMessage severity="info" strength="2" 
+                        summary="Внимание. Новая задача." 
+                        rendered="{!and( not(CurrentTask.isClone), not(CurrentTask.isAuto), CurrentTask.task.ActivityDate > today() ,or(CurrentTask.task.Status == 'Новая', CurrentTask.task.Status == 'Не запущено'))}">
+                    <div class="description">Для начала работы с задачей необходимо принять ее в работу.</div>
+                </apex:pageMessage> 
+
+
+                <apex:pageMessage severity="warning" strength="2" 
+                        summary="Внимание! Крайний срок выполнения задачи сегодня!" 
+                        rendered="{!and( not(CurrentTask.isClone), not(CurrentTask.isAuto), CurrentTask.task.ActivityDate == today() ,or(CurrentTask.task.Status == 'Новая', CurrentTask.task.Status == 'Не запущено'))}">
+                    <div class="description">Для начала работы с задачей необходимо принять ее в работу.</div>
+                </apex:pageMessage> 
+
+                <apex:pageMessage severity="error" strength="2" 
+                        summary="Внимание! Задача просрочена, необходимо завершить работу по ней!" 
+                        rendered="{!and( CurrentTask.task.ActivityDate < today() ,or(CurrentTask.task.Status == 'Новая', CurrentTask.task.Status == 'Не запущено'))}">
+                    <div class="description">Для начала работы с задачей необходимо принять ее в работу.</div>
+                </apex:pageMessage> 
+
+                <apex:pageMessage severity="info" strength="2" 
+                        summary="Внимание. Задача выполняется." 
+                        rendered="{!and( CurrentTask.task.ActivityDate > today() , CurrentTask.task.Status == 'Выполняется')}">
+                    <div class="description">Задача принята в работу, для того чтобы ее завершить нажмите "Закрыть".</div>
+                </apex:pageMessage> 
+
+                <apex:pageMessage severity="warning" strength="2" 
+                        summary="Внимание! Крайний срок выполнения задачи сегодня!" 
+                        rendered="{!and( CurrentTask.task.ActivityDate == today() , CurrentTask.task.Status == 'Выполняется')}">
+                    <div class="description">Задача принята в работу, для того чтобы ее завершить нажмите "Закрыть".</div>
+                </apex:pageMessage> 
+
+                <apex:pageMessage severity="error" strength="2" 
+                        summary="Внимание! Задача просрочена, необходимо завершить работу по ней!" 
+                        rendered="{!and( CurrentTask.task.ActivityDate < today() , CurrentTask.task.Status == 'Выполняется')}">
+                    <div class="description">Задача принята в работу, для того чтобы ее завершить нажмите "Закрыть".</div>
+                </apex:pageMessage> 
+
+                <apex:pageMessage severity="confirm" strength="2" 
+                        summary="Внимание." 
+                        rendered="{!CurrentTask.task.Status == 'Завершено'}">
+                    <div class="description">Задача завершена</div>
+                </apex:pageMessage>
+            </div>
+            
+        </div>
+        
+        
+        
+        <apex:pageBlock mode="maindetail" title="Задача">
+        
+            <apex:pageBlockButtons rendered="{!or( $Profile.Name == 'Системный администратор', CurrentTask.task.Owner.Id == $User.Id )}" ><!-- rendered="{or( $Profile.Name == 'Системный администратор', CurrentTask.task.Owner.Id == $User.Id )}" -->
+                <apex:commandButton action="{!CurrentTask.SetStatusInProcess}" value="Принять задачу в работу" rendered="{!CurrentTask.task.Status == 'Новая'}"/> 
+                <apex:commandButton action="{!CurrentTask.Close}" value="Закрыть задачу" rendered="{!CurrentTask.task.Status == 'Выполняется'}"/>  
+                <apex:commandButton action="{!CurrentTask.Remove}" value="Удалить задачу" rendered="{!$Profile.Name == 'Системный администратор'}"/>
+                
+
+
+            </apex:pageBlockButtons>   
+        
+            <apex:pageMessages ></apex:pageMessages>
+        
+            <apex:pageBlockSection title="Сведения о задаче">
+            
+                <apex:outputField label="Название задачи" value="{!CurrentTask.task.Subject}" />
+                <apex:outputField label="Назначено" value="{!CurrentTask.task.Owner.Name}"  /> 
+                
+                <apex:outputField label="Контакт" value="{!CurrentTask.task.Contacts__c}"  />
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Крайний срок"/>
+                    <apex:outputPanel >
+                        <apex:outputPanel rendered="{!not(isNull(CurrentTask.task.ActivityDate))}">
+                        	<apex:image value="{!$Resource.ImgClock}" styleClass="icon"/>
+                        	<apex:outputText value="{0,date,dd.MM.yyyy}" style="color: {!if( and( CurrentTask.task.ActivityDate < today(), CurrentTask.task.Status <> 'Завершено' ), '#ff0000', '#000000' )} !important">
+                            	<apex:param name="date" value="{!CurrentTask.task.ActivityDate}"/>
+                       		</apex:outputText>
+                        	<apex:outputText value=" Просрочено" rendered="{!AND(CurrentTask.task.ActivityDate < today(), CurrentTask.task.Status <> 'Завершено' )}" style="color: #ff0000"/>
+                        </apex:outputPanel>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                
+                <apex:outputField label="Тип контакта" value="{!CurrentTask.task.ContactType__c}" />
+                <apex:outputField label="Приоритет" value="{!CurrentTask.task.priority}" />
+                
+    
+                
+                <apex:outputField label="Тип задачи" value="{!CurrentTask.task.TaskType__c}"/>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Статус задачи"/>
+                    <apex:outputPanel >
+                        <apex:image value="{!if( CurrentTask.task.Status == 'Завершено', $Resource.ImgOk, if( CurrentTask.task.Status == 'Выполняется', $Resource.ImgProcess, $Resource.ImgTask ) )}"
+                            styleClass="icon"/>
+                        <apex:outputField value="{!CurrentTask.task.Status}"  />
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                
+                
+                <apex:outputField label="Подтип задачи" value="{!CurrentTask.task.SubTypeTask__c}" />
+                <apex:outputField label="Название кампании" value="{!CurrentTask.campaign.Name}" rendered="{!CurrentTask.isCampaign}"/>
+
+                <apex:pageBlockSectionItem rendered="{! CurrentTask.task.SubTypeTask__c == 'Исходящий обзвон'}">
+                    <apex:outputLabel value="Резолюция"/>
+                    <apex:outputPanel >
+                        <apex:outputField value="{!CurrentTask.task.Resolution__c}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                
+            </apex:pageBlockSection>
+            <apex:pageBlockSection showHeader="false" columns="1">
+                <apex:outputField label="Коментарий к результату" id="Com" value="{!CurrentTask.task.Description}" />
+            </apex:pageBlockSection>
+            
+            <apex:pageBlockSection title="Скрипт" columns="1">
+            
+            <apex:iframe height="350" src="/apex/UnlimSalesScript?id={!CurrentTask.Opportunity.Id}" scrolling="true" 
+                rendered="{!and( CurrentTask.Opportunity.ProductGroup__c == 'Распродажа', CurrentTask.opportunity.From__c == 'Холодная заявка')}"/>
+
+            <apex:iframe height="400" src="/apex/WarmSalesScript?id={!CurrentTask.Opportunity.Id}" scrolling="true" 
+                rendered="{!and( CurrentTask.Opportunity.ProductGroup__c == 'Интенсив, Коучинг', not(contains(CurrentTask.Opportunity.ProductId__r.Name, 'Новогодний сертификат')), CurrentTask.Opportunity.From__c == 'Сайт', CurrentTask.Opportunity.StageName == 'Назначена')}"/>
+                
+            <apex:iframe height="255" src="/apex/CertificateSalesScript?id={!CurrentTask.Opportunity.Id}" scrolling="true" 
+                rendered="{!and(or( CurrentTask.Opportunity.Sertifikat__c != null, contains(CurrentTask.Opportunity.ProductId__r.Name, 'Новогодний сертификат')), CurrentTask.opportunity.StageName != 'Оплачена')}"/>
+                
+            </apex:pageBlockSection>
+
+            <apex:pageBlockSection title="Сведения о рекомендации" rendered="{!CurrentTask.isPossibleAccount}">
+                <apex:outputField value="{!CurrentTask.possibleAccount.Name__c}" label="Имя"/>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Рекомендующий"/>
+                    <apex:outputPanel rendered="{!CurrentTask.possibleAccount.RecommendedBy__c != null}">
+                        <img src="/s.gif" class="clientIcon icon"/>
+                        <apex:inputField value="{!CurrentTask.possibleAccount.RecommendedBy__r.AccountLink__c}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:outputField value="{!CurrentTask.possibleAccount.Phone__c}" label="Телефон"/>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Клиент"/>
+                    <apex:outputPanel rendered="{!CurrentTask.possibleAccount.RealAccount__c != null}">
+                        <img src="/s.gif" class="clientIcon icon"/>
+                        <apex:inputField value="{!CurrentTask.possibleAccount.RealAccount__r.AccountLink__c}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:outputField value="{!CurrentTask.possibleAccount.Email__c}" label="Почта"/>
+                <apex:outputField value="{!CurrentTask.possibleAccount.Description__c}" label="Описание"/>
+            </apex:pageBlockSection>
+            
+            <apex:pageBlockSection title="Сведения о {!CurrentTask.textField}" rendered="{!AND(CurrentTask.isAccount, NOT(CurrentTask.isCampaign))}">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Клиент"/>
+                    <apex:outputPanel >
+                        <img src="/s.gif" class="clientIcon icon"/>
+                        <apex:inputField value="{!CurrentTask.account.AccountLink__c}"/> 
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>                
+
+                
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Дата регистрации"/>
+                    <apex:outputPanel >
+                        <apex:image value="{!$Resource.ImgCalendar}" styleClass="icon"/>
+                        <apex:outputField value="{!CurrentTask.account.SiteRegistrationDate__c}"/>  
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                                
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Фамилия"/>
+                    <apex:outputPanel >
+                        <apex:outPutField value="{!CurrentTask.account.LastName}"/> 
+                        
+                        <apex:outputField value="{!CurrentTask.account.NoLastName__c}" styleClass="check"/> 
+                        <apex:outputLabel value="Нет Фамилии" styleClass="label"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>    
+                <apex:outPutField label="Эл.почта" value="{!task.Account.PersonEmail}"  />
+                    
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Имя"/>
+                    <apex:outputPanel >
+                        <apex:outputField value="{!CurrentTask.account.FirstName}" />
+                        
+                        <apex:outputField value="{!CurrentTask.account.NoName__c}" styleClass="check"/> 
+                        <apex:outputLabel value="Нет Имени" styleClass="label"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:outPutField label="Город" value="{!task.Account.ShippingCity}"  />
+
+                <apex:OutPutText label="Отчество" value="{!CurrentTask.account.patronymic__c}" />
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Телефон"/>
+                    <apex:outputPanel > 
+                        <apex:image value="{!$Resource.ImgPhone}" styleClass="icon"/>
+                        <apex:outputText value="{0}({1}){2}">
+                            <apex:param name="phoneCountryCode" value="{!CurrentTask.account.CountryTelCode__c}"/>
+                            <apex:param name="phoneCityCode" value="{!CurrentTask.account.CityCode__c}"/>
+                            <apex:param name="phoneNomber" value="{!CurrentTask.account.PhoneNumber__c}"/>
+                        </apex:outputText>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+            
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Дата Рождения"/>
+                    <apex:outputPanel >
+                        <apex:outputField value="{!CurrentTask.account.BirthDay__c}"/>
+                        <apex:outputText value=", возраст: {0}" rendered="{!not(isnull(CurrentTask.account.BirthDay__c))}">
+                            <apex:param value="{!IF ( OR ( MONTH ( CurrentTask.account.BirthDay__c ) > MONTH (TODAY()), AND( MONTH ( CurrentTask.account.BirthDay__c ) = MONTH (TODAY()), DAY ( CurrentTask.account.BirthDay__c ) >= DAY (TODAY()+1))), YEAR (TODAY()) - YEAR ( CurrentTask.account.BirthDay__c ) -1, YEAR (TODAY()) - YEAR ( CurrentTask.account.BirthDay__c )) }"/>
+                        </apex:outputText>  
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                
+               	<apex:outputField value="{!CurrentTask.account.HasBusiness__c}" label="Есть бизнес" />
+                <apex:outputField value="{!CurrentTask.account.Sex__c}" label="Пол" />
+                <apex:outputField value="{!CurrentTask.account.Industry}" label="Сфера бизнеса" />
+               	<apex:outputField value="{!CurrentTask.account.WhereKnow__c}" label="Откуда узнали" />
+                <apex:outputField value="{!CurrentTask.account.PersonalIncome__c}" label="Уровень дохода" />
+                <apex:outputField value="{!CurrentTask.account.WhereKnowDetail__c}" label="Откуда узнали (уточнение)" />
+                <apex:outputField value="{!CurrentTask.account.NumberOfEmployees}" label="Количество сотрудников" />
+                <apex:outputField value="{!CurrentTask.account.WhereKnowOther__c}" label="Откуда узнали (другое)" />
+            </apex:pageBlockSection>
+            
+            <apex:pageBlockSection title="Сведения о {!CurrentTask.textField}" rendered="{!AND(CurrentTask.isAccount, CurrentTask.isCampaign)}">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Клиент"/>
+                    <apex:outputPanel >
+                        <img src="/s.gif" class="clientIcon icon"/>
+                        <apex:inputField value="{!CurrentTask.account.AccountLink__c}"/> 
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>                
+
+                
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Дата регистрации"/>
+                    <apex:outputPanel >
+                        <apex:image value="{!$Resource.ImgCalendar}" styleClass="icon"/>
+                        <apex:outputField value="{!CurrentTask.account.SiteRegistrationDate__c}"/>  
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                                
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Фамилия"/>
+                    <apex:outputPanel >
+                        <apex:outPutField value="{!CurrentTask.account.LastName}"/> 
+                        
+                        <apex:outputField value="{!CurrentTask.account.NoLastName__c}" styleClass="check"/> 
+                        <apex:outputLabel value="Нет Фамилии" styleClass="label"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>    
+                <apex:outPutField label="Эл.почта" value="{!task.Account.PersonEmail}"  />
+                    
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Имя"/>
+                    <apex:outputPanel >
+                        <apex:outputField value="{!CurrentTask.account.FirstName}" />
+                        
+                        <apex:outputField value="{!CurrentTask.account.NoName__c}" styleClass="check"/> 
+                        <apex:outputLabel value="Нет Имени" styleClass="label"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:outPutField label="Город" value="{!task.Account.ShippingCity}"  />
+
+
+                <apex:OutPutText label="Отчество" value="{!CurrentTask.account.patronymic__c}" />
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Телефон"/>
+                    <apex:outputPanel > 
+                        <apex:image value="{!$Resource.ImgPhone}" styleClass="icon"/>
+                        <apex:outputText value="{0}({1}){2}">
+                            <apex:param name="phoneCountryCode" value="{!CurrentTask.account.CountryTelCode__c}"/>
+                            <apex:param name="phoneCityCode" value="{!CurrentTask.account.CityCode__c}"/>
+                            <apex:param name="phoneNomber" value="{!CurrentTask.account.PhoneNumber__c}"/>
+                        </apex:outputText>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+            
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Дата Рождения"/>
+                    <apex:outputPanel >
+                        <apex:outputField value="{!CurrentTask.account.BirthDay__c}"/>
+                        <apex:outputText value=", возраст: {0}" rendered="{!not(isnull(CurrentTask.account.BirthDay__c))}">
+                            <apex:param value="{!IF ( OR ( MONTH ( CurrentTask.account.BirthDay__c ) > MONTH (TODAY()), AND( MONTH ( CurrentTask.account.BirthDay__c ) = MONTH (TODAY()), DAY ( CurrentTask.account.BirthDay__c ) >= DAY (TODAY()+1))), YEAR (TODAY()) - YEAR ( CurrentTask.account.BirthDay__c ) -1, YEAR (TODAY()) - YEAR ( CurrentTask.account.BirthDay__c )) }"/>
+                        </apex:outputText>  
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+
+                <apex:outputField value="{!CurrentTask.account.HasBusiness__c}" label="Есть бизнес"/>
+                <apex:outputField value="{!CurrentTask.account.Sex__c}" label="Пол"/>
+                 <apex:outputField value="{!CurrentTask.account.Industry}" label="Сфера бизнеса"/>
+                <apex:outputField value="{!CurrentTask.account.WhereKnow__c}" label="Откуда узнали"/>
+                <apex:outputField value="{!CurrentTask.account.PersonalIncome__c}" label="Уровень дохода"/>
+                <apex:outputField value="{!CurrentTask.account.WhereKnowDetail__c}" label="Откуда узнали (уточнение)"/>
+                <apex:outputField value="{!CurrentTask.account.NumberOfEmployees}" label="Количество сотрудников"/>
+                <apex:outputField value="{!CurrentTask.account.WhereKnowOther__c}" label="Откуда узнали (другое)"/>
+            </apex:pageBlockSection>
+            
+            <apex:pageBlockSection rendered="{!CurrentTask.isAccount && !CurrentTask.isPossibleAccount}" columns="1">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Комментарий по клиенту"/>
+                    <apex:outputField value="{!CurrentTask.account.Description}"/>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+            
+            <apex:pageBlockSection title="Сведения о заявке" rendered="{!CurrentTask.isOpportunity}">
+                
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Заявка"/>
+                    <apex:outputPanel >
+                        <img src="/s.gif" class="opportunityIcon icon"/>
+                        <apex:outputField value="{!CurrentTask.opportunity.OpportunityLink__c}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                
+                <apex:pageBlockSectionItem >
+                    <apex:outputpanel style="text-align: center">
+                    
+                        <div style="                            
+                            border: 2px solid #1797c0;
+                            border-radius: 5px; 
+                            padding: 0px; 
+                            margin-top: -5px;
+                            margin-bottom: 1px;
+                            position:relative;
+                            display:block;
+                            background: #cfeef8;
+                            overflow: hidden;
+                            ">
+                            <div style="
+                                float:left;
+                                padding: 5px; 
+                                background: #1797c0;
+                                color: #ffffff;
+                                width: 32%;
+                                text-align: right;
+                                ">
+                                <div>Статус заявки</div>
+                            </div>
+                            <div style="
+                                float:left;
+                                padding: 5px 5px 5px 16px;">
+                                <apex:outputText value="{!CurrentTask.opportunity.StageName}"/>
+                            </div>
+                            
+                        </div>
+
+                    </apex:outputpanel>
+                </apex:pageBlockSectionItem>
+
+             <!--    <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Причина отказа"/>
+                    <apex:outputField label="Причина отказа" value="{!CurrentTask.opportunity.ProductId__c}"/>
+                </apex:pageBlockSectionItem>
+                 -->
+    
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Продукт"/>
+                    <apex:outputPanel >
+                        <img src="/img/icon/products32.png" class="icon"/>
+                        <apex:outputField label="Продукт" value="{!CurrentTask.opportunity.ProductId__c}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>    
+                <apex:outputField label="Причина" value="{!CurrentTask.opportunity.ReasonRefusal__c}"/> 
+                    
+                
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Стоимость со скидкой"/>
+                    <apex:outputPanel >
+                        <apex:image value="{!$Resource.ImgPrice}" styleClass="icon"/>
+                        <apex:outputField value="{!CurrentTask.opportunity.AmountWithDiscount__c}"/>  
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Заморозка"/>
+                    <apex:outputPanel >
+                        <apex:outputField value="{!CurrentTask.opportunity.Freezing__c}"/>
+                        <apex:outputField value="{!CurrentTask.opportunity.FreezingToAction__c}"/>  
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                
+                <apex:outputField value="{!CurrentTask.opportunity.SummNDS__c}" label="Сумма НДС"/> 
+                <apex:pageBlockSectionItem >
+                    <!-- <apex:outputLabel value="Дата создания"/>
+                    <apex:outputPanel >
+                        <apex:image value="{!$Resource.ImgCalendar}" styleClass="icon"/>
+                        <apex:outputField value="{!CurrentTask.opportunity.CreatedDate}"/>  
+                    </apex:outputPanel> -->
+                    <apex:outputLabel value="Дата создания"/>
+                    <apex:outputText value="{0,date,dd.MM.yyyy}" label="Дата создания">
+                        <apex:param value="{!CurrentTask.opportunity.CreatedDate}" /> 
+                    </apex:outputText>
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem >
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem >
+                <apex:outputLabel value="Время создания"/>
+                <apex:outputText value="{0,date,HH:mm}" label="Время создания">
+                    <apex:param value="{!CurrentTask.opportunity.CreatedDate}" /> 
+                </apex:outputText>
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Платежей"/>
+                    <apex:outputPanel >
+                        <img src="{!$Resource.ImgMoney}" class="icon"/>
+                        <apex:outputField value="{!CurrentTask.opportunity.SummOfPayments__c}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:outputField value="{!CurrentTask.opportunity.PaymentRobokassa__c}" label="Попытка оплаты(Робокасса)"/>                            
+                
+                <apex:outputField label="Задолженость" value="{!CurrentTask.opportunity.Debt__c}"/>    
+                <apex:outputField value="{!CurrentTask.opportunity.PrintPayments__c}" label="Печать платежки"/>
+                <apex:outputField value="{!CurrentTask.opportunity.From__c}"/>    
+                <apex:pageBlockSectionItem />
+            </apex:pageBlockSection>
+            
+            <c:Actions ValueOpportunityId="{!CurrentTask.opportunity.Id}" rendered="{!CurrentTask.isOpportunity}"/>
+
+            <apex:pageBlockSection rendered="{!CurrentTask.isOpportunity || !CurrentTask.isPossibleAccount}" columns="1">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Комментарий по заявке"/>
+                    <apex:outputField value="{!CurrentTask.opportunity.Description}"/>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+            
+            
+            <apex:pageBlockSection title="Продукт интереса" columns="1" rendered="{!CurrentTask.isOpportunity}">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Продукты которым интересуется"/>
+                    <apex:outputPanel >
+                        <apex:pageMessage severity="info" strength="1" 
+                        summary="Продуктов нет" 
+                        rendered="{!IntrestProducts.CountOfIntrestProducts == 0}"/> 
+                        
+                        <apex:pageBlockTable value="{!IntrestProducts.IntrestProducts}" 
+                            var="p"
+                            rendered="{!IntrestProducts.CountOfIntrestProducts > 0}">
+                            <apex:column value="{!p.product.Product__c}"/>
+                            <apex:column >
+                                <apex:facet name="header">Дата добавления интересующего продукта</apex:facet>
+                                <apex:outputField value="{!p.product.CreatedDate}"/>
+                            </apex:column>
+                        </apex:pageBlockTable>
+                        
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+
+            <apex:pageBlockSection title="Сведения о обращение" columns="1" rendered="{!CurrentTask.isCase}">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Номер обращения"/>
+                    <apex:outputLink value="/{!CurrentTask.clientCase.Id}">{!CurrentTask.clientCase.CaseNumber}</apex:outputLink>
+                </apex:pageBlockSectionItem>
+                
+                <apex:outputField value="{!CurrentTask.clientCase.Subject}" label="Тема"/>
+                <apex:outputField value="{!CurrentTask.clientCase.Status}" label="Статус"/>
+                <apex:outputField value="{!CurrentTask.clientCase.PhoneToCall__c}" label="Статус" rendered="{!CurrentTask.clientCase.PhoneToCall__c != ''}"/>
+                <apex:outputField value="{!CurrentTask.clientCase.Description}" label="Описание"/>
+                <apex:outputField value="{!CurrentTask.clientCase.Type}" label="Тип"/>
+            </apex:pageBlockSection>
+            
+            <apex:pageBlockSection title="Напоминание" columns="1">
+                <apex:OutputField value="{!CurrentTask.task.IsReminderSet}" label="Напоминание" /> 
+                <apex:OutputField value="{!CurrentTask.task.ReminderDateTime}" rendered="{!CurrentTask.task.IsReminderSet}"/>
+            </apex:pageBlockSection>
+                                    
+            <apex:pageBlockSection title="История изменений">
+                <apex:outputText label="Создал">{!CurrentTask.task.CreatedBy.Name}&nbsp;&nbsp;&nbsp;<apex:outputField value="{!CurrentTask.task.CreatedDate}"/></apex:outputText>
+                <apex:outputText label="Последнее изменение сделано">{!CurrentTask.task.LastModifiedBy.Name}&nbsp;&nbsp;&nbsp;<apex:outputField value="{!CurrentTask.task.LastModifiedDate}"/></apex:outputText> 
+            </apex:pageBlockSection>
+
+        </apex:pageBlock>
+    
+    </apex:form>
+ 
+
+    
+    <!-- редактирование задачи -->
+
+
+    <apex:form id="theActionForm">
+
+        <apex:actionFunction reRender="TaskReminderDateTime" name="rerenderReminderDateTime" status="StatusReminderDateTime">
+            <apex:param name="ParamIsReminderSet" assignTo="{!CurrentTask.task.IsReminderSet}" value="" />  
+            <apex:param name="ParamReminderDateTime" assignTo="{!CurrentTask.task.ReminderDateTime}" value="" />
+        </apex:actionFunction>  
+
+        <apex:actionFunction reRender="TaskReminderDateTime" name="rerenderReminderDateTimeByActivityDate" status="StatusReminderDateTime">
+            <apex:param name="ParamIsReminderSet" assignTo="{!CurrentTask.task.IsReminderSet}" value="" />  
+        </apex:actionFunction>   
+        
+        <apex:actionFunction reRender="LastName" name="rerenderLastName" status="StatusLastName" >
+            <apex:param name="ParamNoLastName" assignTo="{!CurrentTask.account.NoLastName__c}" value="" />  
+            <apex:param name="ParamLastName" assignTo="{!CurrentTask.account.LastName}" value="" />  
+        </apex:actionFunction>
+
+        <apex:actionFunction reRender="cityBlock" name="rerenderNoSaydCity" status="StatusNoCity" >
+            <apex:param name="noSayCity" assignTo="{!CurrentTask.noSaydCity}" value="" />  
+        </apex:actionFunction>
+
+        <apex:actionFunction reRender="ageBlock" name="rerenderNoAge" status="StatusNoAge" >
+            <apex:param name="noSayAge" assignTo="{!CurrentTask.noSaydAge}" value="" />  
+        </apex:actionFunction>
+        
+        <apex:actionFunction reRender="sexBlock" name="rerenderNoSex" status="StatusNoSex" >
+            <apex:param name="noSaySex" assignTo="{!CurrentTask.noSaydMale}" value="" />  
+        </apex:actionFunction>
+        
+        <apex:actionFunction reRender="bisBlock" name="rerenderNoBis" status="StatusNoBisnesP" >
+            <apex:param name="noSayBis" assignTo="{!CurrentTask.noSaydBisnesP}" value="" />  
+        </apex:actionFunction>
+        
+        <apex:actionFunction reRender="knowBlock, know2Block, knowOtherBlock" name="rerenderNoKnow" status="StatusNoWhereKnow" >
+            <apex:param name="noSayKnow" assignTo="{!CurrentTask.noSaydWhereKnow}" value="" />
+            <apex:param name="noSayKnowOther" assignTo="{!CurrentTask.noSaydWhereKnowOther}" value="" />
+            <apex:param name="noSayKnow2" assignTo="{!CurrentTask.noSaydWhereKnow2}" value="" />   
+        </apex:actionFunction>
+        <apex:actionFunction reRender="incomeBlock" name="rerenderNoIncome" status="StatusNoIncome" >
+            <apex:param name="noSayIncome" assignTo="{!CurrentTask.noSaydIncome}" value="" />  
+        </apex:actionFunction>
+        <apex:actionFunction reRender="knowOtherBlock" name="rerenderNoKnowOther" status="StatusNoWhereKnowOther" >
+            <apex:param name="noSayKnowOther" assignTo="{!CurrentTask.noSaydWhereKnowOther}" value="" />  
+        </apex:actionFunction>
+        <apex:actionFunction reRender="empBlock" name="rerenderNoEmp" status="StatusNoEmp" >
+            <apex:param name="noSayEmp" assignTo="{!CurrentTask.noSaydCountEmp}" value="" />  
+        </apex:actionFunction>
+        <apex:actionFunction reRender="know2Block" name="rerenderNoKnow2" status="StatusNoWhereKnow2" >
+            <apex:param name="noSayKnow2" assignTo="{!CurrentTask.noSaydWhereKnow2}" value="" />  
+        </apex:actionFunction>
+
+        <apex:actionFunction reRender="clientBlockEdit" name="rerenderDoNotCall" status="StatusDonotCall" action="{!CurrentTask.doNotCall}">
+            <apex:param name="statusCall" assignTo="{!CurrentTask.doNotCallFlag}" value=""></apex:param>
+        </apex:actionFunction>
+
+        <apex:actionFunction reRender="FirstName" name="rerenderFirstName" status="StatusFirstName" >
+            <apex:param name="ParamNoName" assignTo="{!CurrentTask.account.NoName__c}" value="" />  
+            <apex:param name="FirstName" assignTo="{!CurrentTask.account.FirstName}" value="" /> 
+        </apex:actionFunction>
+        <apex:actionFunction name="refresh" action="{!IntrestProducts.Refresh}" rerender="FormIntrestProducts"
+            oncomplete="hideDialog();"/>
+
+        <apex:actionFunction reRender="PhoneCodeCountry" name="rerenderPhoneCodeCountry" status="StatusPhoneCodeCountry">
+            <apex:param name="ParamCountry" assignTo="{!CurrentTask.account.CountryCode__c}" value="" />  
+        </apex:actionFunction>
+
+        
+    </apex:form>
+    
+    <apex:form rendered="{!CurrentTask.Mode == 'edit'}">
+
+        <div class="tip">
+            <div style="width: 50%">
+                <apex:sectionHeader title="Задача" subtitle="Редактирование задачи"/>
+            </div>
+            <!-- <div style="float:left; padding-top: 15px">
+                <apex:pageMessage severity="error" strength="3" 
+                        summary="Внимание." >
+                    <div class="description">Расскажи клиенту про игру. Вся информация <a href='http://bmplay.ru'>bmplay.ru</a></div>
+                </apex:pageMessage> 
+            </div> -->
+        </div>
+
+        
+        <apex:pageBlock mode="edit" title="Задача: редактирование" id="MyButtons">
+            <apex:pageBlockButtons >
+
+                <apex:commandButton value="Создать заявку" action="{!CurrentTask.SaveAndCreateOpp}" rendered="{!!CurrentTask.isPossibleAccount}"/>
+                <apex:commandButton value="Сохранить" action="{!CurrentTask.Save}"/>     
+                <apex:commandButton value="Сохранить и создать задачу" action="{!CurrentTask.SaveAndCreate}" rendered="{!or(CurrentTask.Task.Status == 'Выполняется',CurrentTask.Task.Status == 'Завершено')}" styleClass="SaveAndCreate"/> 
+                <apex:commandButton value="Создать клиента и перевести на него задачу" action="{!createAccountAndTask}" rendered="{!CurrentTask.isPossibleAccount}"/>
+                <apex:commandButton value="Перевести задачу на существующего клиента" action="{!showPopupForm}" rendered="{!CurrentTask.isPossibleAccount}" reRender="PopupSection"/>
+                <apex:commandButton value="Отмена" action="{!CurrentTask.Cancel}" immediate="true"/>    
+                <apex:commandButton action="{!CurrentTask.Remove}" value="Удалить задачу" rendered="{!and($Profile.Name == 'Системный администратор', CurrentTask.task.Status != 'Завершено')}"/> 
+                <apex:commandbutton value="Отправить E-mail"  rendered="{!!CurrentTask.isPossibleAccount}"
+                    onclick="window.open('/_ui/core/email/author/EmailAuthor?p2_lkid={!CurrentTask.account.Id}&rtype=003&p3_lkid={!CurrentTask.account.Id}'); return false;"/>
+            </apex:pageBlockButtons> 
+            <apex:pageMessages ></apex:pageMessages>
+            <apex:pageBlockSection title="Сведения о задаче">
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Название задачи"/>
+                    <apex:outputPanel >
+                        <apex:inputField value="{!CurrentTask.task.Subject}" 
+                            required="true" style="width:85%;" 
+                            rendered="{!CurrentTask.Task.Status == 'Новая'}"/>
+                        <apex:outputField value="{!CurrentTask.task.Subject}" 
+                            rendered="{!CurrentTask.Task.Status != 'Новая'}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                
+                <apex:inputField label="Назначено" value="{!CurrentTask.task.OwnerId}"/> 
+                
+                <apex:inputField label="Контакт" value="{!CurrentTask.task.Contacts__c}"  required="true" styleClass="block1" style="width:85%;"/>
+                
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Крайний срок"/>
+                    <apex:outputPanel >
+                        <apex:outputField label="Крайний срок" value="{!CurrentTask.task.ActivityDate}"
+                            rendered="{!or(CurrentTask.task.Status == 'Завершено', CurrentTask.task.Status == 'Выполняется')}"/>
+                        <apex:inputField label="Крайний срок" value="{!CurrentTask.task.ActivityDate}"  
+                            required="true" 
+                            rendered="{!CurrentTask.task.Status == 'Новая'}"
+                            onchange="ApplyToReminderDateTime(this.value+' 10:00')"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                
+                
+                
+                <apex:inputField label="Тип контакта" value="{!CurrentTask.task.ContactType__c}"  required="true" style="width:85%;"/>   
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Приоритет"/>
+                    <apex:outputPanel >
+                        <apex:inputField value="{!CurrentTask.task.priority}" 
+                            required="true" style="width:85%;" 
+                            rendered="{!CurrentTask.Task.Status == 'Новая'}"/>
+                        <apex:outputField value="{!CurrentTask.task.priority}" 
+                            rendered="{!CurrentTask.Task.Status != 'Новая'}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Тип задачи"/>
+                    <apex:outputPanel >
+                        <apex:inputField value="{!CurrentTask.task.TaskType__c}" 
+                            required="true" style="width:85%;" 
+                            rendered="{!CurrentTask.Task.Status == 'Новая'}"/>
+                        <apex:outputField value="{!CurrentTask.task.TaskType__c}" 
+                            rendered="{!CurrentTask.Task.Status != 'Новая'}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>             
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Статус задачи"/>
+                    <apex:outputPanel >
+                        <apex:image value="{!if( CurrentTask.task.Status == 'Завершено', $Resource.ImgOk, if( CurrentTask.task.Status == 'Выполняется', $Resource.ImgProcess, $Resource.ImgTask ) )}"
+                            styleClass="icon"/>
+                        <apex:outputField value="{!CurrentTask.task.Status}"  />
+                        <apex:inputField value="{!CurrentTask.task.Status}" style="display: none" />
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                                
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Подтип задачи"/>
+                    <apex:outputPanel >
+                        <apex:inputField value="{!CurrentTask.task.SubTypeTask__c}" 
+                            required="true" style="width:85%;" 
+                            rendered="{!CurrentTask.Task.Status == 'Новая'}"/>
+                        <apex:outputField value="{!CurrentTask.task.SubTypeTask__c}" 
+                            rendered="{!CurrentTask.Task.Status != 'Новая'}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem rendered="{!CurrentTask.isCampaign}">
+                    <apex:outputLabel value="Название кампании"/>
+                    <apex:outputPanel >
+                        <apex:outputField value="{!CurrentTask.campaign.Name}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+
+                
+                <apex:pageBlockSectionItem rendered="{! CurrentTask.task.SubTypeTask__c == 'Исходящий обзвон'}">
+                    <apex:outputLabel value="Резолюция"/>
+                    <apex:outputPanel >
+                    <apex:inputField value="{!CurrentTask.task.SubTypeTask__c}" styleClass="HiddenStageName"  style="display:none;"/>
+                    <apex:inputField value="{!CurrentTask.task.TaskType__c}" styleClass="HiddenStageName"  style="display:none;"/>
+                    <apex:inputField value="{!CurrentTask.task.Resolution__c}"  required="{!CurrentTask.Task.Status == 'Завершено'}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+            <apex:pageBlockSection showHeader="false" columns="1"  id="TaskDescription">
+                <apex:inputField label="Коментарий к результату" value="{!CurrentTask.task.Description}" 
+                    required="{!CurrentTask.task.Status == 'Завершено'}" 
+                    Style="height:60px;width:100%;" 
+                    styleClass="TaskDescription" >
+                </apex:inputField>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Не дозвонился"/>
+                    <apex:outputPanel >
+                        <apex:inputCheckbox label="doNotCall" value="{!CurrentTask.task.doNotCallFlag__c}"
+                            id="doNotCall"
+                            onchange="rerenderDoNotCall(this.checked)"></apex:inputCheckbox>
+                        <apex:actionStatus id="StatusDonotCall">
+                            <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>       
+                        </apex:actionStatus>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Перезвонить"/>
+                    <apex:outputPanel >
+                        <apex:inputCheckbox label="doNotCall" value="{!CurrentTask.task.doRecall__c}"
+                            id="doNotCall"
+                            onchange="rerenderDoNotCall(this.checked)"></apex:inputCheckbox>
+                        <apex:actionStatus id="StatusDonotCall">
+                            <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>       
+                        </apex:actionStatus>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+
+            <apex:pageBlockSection title="Сведения о рекомендации" rendered="{!CurrentTask.isPossibleAccount}">
+                <apex:outputField value="{!CurrentTask.possibleAccount.Name__c}" label="Имя"/>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Рекомендующий"/>
+                    <apex:outputPanel rendered="{!CurrentTask.possibleAccount.RecommendedBy__c != null}">
+                        <img src="/s.gif" class="clientIcon icon"/>
+                        <apex:inputField value="{!CurrentTask.possibleAccount.RecommendedBy__r.AccountLink__c}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:outputField value="{!CurrentTask.possibleAccount.Phone__c}" label="Телефон"/>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Клиент"/>
+                    <apex:outputPanel  rendered="{!CurrentTask.possibleAccount.RealAccount__c != null}">
+                        <img src="/s.gif" class="clientIcon icon"/>
+                        <apex:inputField value="{!CurrentTask.possibleAccount.RealAccount__r.AccountLink__c}"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:outputField value="{!CurrentTask.possibleAccount.Email__c}" label="Почта"/>
+                <apex:outputField value="{!CurrentTask.possibleAccount.Description__c}" label="Описание"/>
+            </apex:pageBlockSection>
+            
+            <apex:pageBlockSection title="Сведения о {!CurrentTask.textField}" rendered="{!CurrentTask.isAccount}" id="clientBlockEdit">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Клиент"/>
+                    <apex:outputPanel >
+                        <img src="/s.gif" class="clientIcon icon"/>
+                        <apex:inputField value="{!CurrentTask.account.AccountLink__c}"/> 
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+
+                <apex:outputText value="{0,date,dd.MM.yyyy  HH:mm }" label="Дата регистрации">
+                    <apex:param value="{!CurrentTask.account.SiteRegistrationDate__c}" /> 
+                </apex:outputText>
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Фамилия"/>
+                    <apex:outputPanel >
+                        <table border="0" cellspacing="0" cellpadding="0">
+                            <tr>
+                                <td style="vertical-align: middle" width="50%">
+                                    <apex:outputPanel id="LastName" >
+                                        <apex:inputField value="{!CurrentTask.account.LastName}" 
+                                            required="{!not(CurrentTask.account.NoLastName__c)}" 
+                                            rendered="{!not(CurrentTask.account.NoLastName__c)}" 
+                                            style="width:100%;"/> 
+                                        
+                                        <apex:inputText value="{!CurrentTask.account.LastName}" 
+                                            disabled="{!CurrentTask.account.NoLastName__c}" 
+                                            rendered="{!CurrentTask.account.NoLastName__c}"
+                                            style="width:100%;"/>
+                                    </apex:outputPanel> 
+                                </td>
+                                <td style="vertical-align: middle" width="50%">
+                                    <apex:inputField value="{!CurrentTask.account.NoLastName__c}" id="NoLastName" styleClass="check"
+                                        onclick="rerenderLastName( ( this.checked == true ? true : false), ( this.checked == true ? '-' : ''))">
+                                    </apex:inputField> 
+                                    <apex:outputLabel value="Нет Фамилии" styleClass="label" for="NoLastName"/>
+                                    <apex:actionStatus id="StatusLastName">
+                                        <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+                                    </apex:actionStatus>
+                                </td>
+                            </tr>
+                        </table>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem> 
+                           
+                <apex:outputField label="Эл.почта" value="{!CurrentTask.account.PersonEmail}"/>
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Имя"/>
+                    <apex:outputPanel >
+                        <table border="0" cellspacing="0" cellpadding="0">
+                            <tr>
+                                <td style="vertical-align: middle" width="50%">
+                                    <apex:outputPanel id="FirstName">
+                                        <apex:inputField value="{!CurrentTask.account.FirstName}" 
+                                            required="{!and(not(CurrentTask.account.NoName__c), not(CurrentTask.isClone))}" 
+                                            rendered="{!not(CurrentTask.account.NoName__c)}" 
+                                            style="width:100%;"/> 
+            
+                                        <apex:inputText value="{!CurrentTask.account.FirstName}" 
+                                            disabled="{!CurrentTask.account.NoName__c}" 
+                                            rendered="{!CurrentTask.account.NoName__c}"
+                                            style="width:100%;"/> 
+                                    </apex:outputPanel> 
+                                </td>
+                                <td style="vertical-align: middle" width="50%">
+                                    <apex:inputCheckbox value="{!CurrentTask.account.NoName__c}" id="NoName" styleClass="check"
+                                        onclick="rerenderFirstName( ( this.checked == true ? true : false), ( this.checked == true ? '-' : '') )">
+                                    </apex:inputCheckbox>
+                                    <apex:outputLabel value="Нет Имени" styleClass="label" for="NoName"/>
+                                    <apex:actionStatus id="StatusFirstName">
+                                        <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+                                    </apex:actionStatus>
+                                </td>
+                            </tr>
+                        </table>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Город"/>
+                    <apex:outputPanel id="cityBlock">
+                        <apex:inputField label="Город" value="{!CurrentTask.Account.ShippingCity}"
+                            required="{!and(CurrentTask.account.isPersonAccount, not(CurrentTask.noSaydCity), not(CurrentTask.isClone))}"
+                            rendered="{!not(CurrentTask.noSaydCity)}">
+                        </apex:inputField>
+                        <apex:inputText label="Город" value="{!CurrentTask.Account.ShippingCity}"
+                            rendered="{!and(CurrentTask.account.isPersonAccount,CurrentTask.noSaydCity)}"
+                            disabled="{!CurrentTask.noSaydCity}">
+                        </apex:inputText>
+                        <apex:inputCheckbox label="noSayCity" value="{!CurrentTask.noSaydCity}"
+                            rendered="{!and(CurrentTask.account.ShippingCity == null, not(CurrentTask.isClone))}"
+                            id="NoCity"
+                            onchange="rerenderNoSaydCity(this.checked)">
+                        </apex:inputCheckbox>
+                        <apex:outputLabel value="Не назвал" styleClass="label" for="NoCity" rendered="{!and(CurrentTask.account.ShippingCity == null, not(CurrentTask.isClone))}"/>
+                        <apex:actionStatus id="StatusNoCity">
+                            <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+                        </apex:actionStatus>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:inputField label="Отчество" value="{!CurrentTask.account.patronymic__c}" style="width:50%;">
+                </apex:inputField>
+                 <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Номер телефона"/>
+                    <apex:outputPanel >
+                        <apex:inputText value="{!CurrentTask.account.CountryTelCode__c}" id="PhoneCodeCountry"
+                            style="width:30px;">
+                        </apex:inputText> 
+                        <apex:outputText value="( "></apex:outputText>
+                        <apex:inputField label="Код города" value="{!CurrentTask.account.CityCode__c}"
+                            required="{!If(CurrentTask.account.isPersonAccount,false,true)}"
+                            style="width:40px;">
+                        </apex:inputField>
+                        <apex:outputText value=") "></apex:outputText>     
+                        <apex:inputField label="Номер телефона" value="{!CurrentTask.account.PhoneNumber__c}"
+                            required="{!If(CurrentTask.account.isPersonAccount,false,true)}"
+                            style="width:30%;">
+                        </apex:inputField>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>               
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="День рождения"></apex:outputLabel>
+                    <apex:outputPanel id="ageBlock">
+                        <apex:inputField value="{!CurrentTask.account.BirthDay__c}" label="День рождения"
+                            rendered="true"
+                            required="fasle">
+                        </apex:inputField>
+                        <apex:inputText value="{!CurrentTask.account.BirthDay__c}" label="День рождения"
+                            disabled="{!(CurrentTask.noSaydAge)}"
+                            rendered="fasle">
+                        </apex:inputText>
+                        <apex:inputCheckbox label="NoSaydAge" value="{!CurrentTask.noSaydAge}"
+                            id="NoAge"
+                            rendered="{!and(CurrentTask.account.BirthDay__c == null, not(CurrentTask.isClone))}"
+                            onchange="rerenderNoAge(this.checked)">
+                        </apex:inputCheckbox>
+                        <apex:outputLabel rendered="{!and(CurrentTask.account.BirthDay__c == null, not(CurrentTask.isClone))}"  value="Не назвал" styleClass="label" for="NoAge"></apex:outputLabel>
+                        <apex:actionStatus id="StatusNoAge">
+                            <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+                        </apex:actionStatus>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Есть бизнес"></apex:outputLabel>   
+                    <apex:outputPanel >
+                        <apex:inputField value="{!CurrentTask.account.HasBusiness__c}" label="Есть бизнес"/>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Пол"></apex:outputLabel>
+                    <apex:outputPanel id="sexBlock">
+                        <apex:inputField value="{!CurrentTask.account.Sex__c}" label="Пол"
+                            rendered="{!not(CurrentTask.noSaydMale)}"
+                            required="{!and(not(CurrentTask.noSaydMale), not(CurrentTask.isClone))}">
+                        </apex:inputField>
+                        <apex:inputText value="{!CurrentTask.account.Sex__c}" label="Пол"
+                            disabled="{!(CurrentTask.noSaydMale)}"
+                            rendered="{!(CurrentTask.noSaydMale)}">
+                        </apex:inputText>
+                        <apex:inputCheckbox label="noSaydMale" value="{!CurrentTask.noSaydMale}" id="NoMale"
+                           rendered="{!and(CurrentTask.account.Sex__c == null, not(CurrentTask.isClone))}"
+                            onchange="rerenderNoSex(this.checked)">
+                        </apex:inputCheckbox>
+                        <apex:outputLabel value="Не назвал" styleClass="label" for="NoMale"
+                            rendered="{!and(CurrentTask.account.Sex__c == null, not(CurrentTask.isClone))}"></apex:outputLabel>
+                        <apex:actionStatus id="StatusNoSex">
+                            <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+                        </apex:actionStatus>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Индустрия"></apex:outputLabel>
+                    <apex:outputPanel id="bisBlock">
+                        <apex:inputField value="{!CurrentTask.account.Industry}"
+                            required="{!and(CurrentTask.opportunity.StageName != 'Тестовая', CurrentTask.opportunity.IsMillion__c, not(CurrentTask.noSaydBisnesP), not(CurrentTask.isClone))}"
+                            rendered="{!not(CurrentTask.noSaydBisnesP)}">
+                        </apex:inputField>
+                        <apex:inputText value="{!CurrentTask.account.Industry}"
+                            disabled="{!CurrentTask.noSaydBisnesP}"
+                            rendered="{!CurrentTask.noSaydBisnesP}">
+                        </apex:inputText>
+                        <apex:inputCheckbox label="noSaydBisnesP" value="{!CurrentTask.noSaydBisnesP}" id="NoIndustry"
+                            rendered="{!and(CurrentTask.account.Industry == null, not(CurrentTask.isClone))}"
+                            onchange="rerenderNoBis(this.checked)">
+                        </apex:inputCheckbox>
+                        <apex:outputLabel value="Не назвал" styleClass="label" for="NoIndustry"
+                            rendered="{!and(CurrentTask.account.Industry == null, not(CurrentTask.isClone))}"/> 
+                        <apex:actionStatus id="StatusNoBisnesP">
+                            <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+                        </apex:actionStatus>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Откуда узнали"></apex:outputLabel>
+                    <apex:outputPanel id="knowBlock">
+                        <apex:inputField value="{!CurrentTask.account.WhereKnow__c}" label="Откуда узнали"
+                            rendered="{!not(CurrentTask.noSaydWhereKnow)}"
+                            required="{!and(not(CurrentTask.noSaydWhereKnow), not(CurrentTask.isClone))}">
+                        </apex:inputField>
+                        <apex:inputText value="{!CurrentTask.account.WhereKnow__c}" label="Откуда узнали"
+                            disabled="{!(CurrentTask.noSaydWhereKnow)}"
+                            rendered="{!(CurrentTask.noSaydWhereKnow)}">
+                        </apex:inputText>
+                        <apex:inputCheckbox label="noSaydWhereKnow" value="{!CurrentTask.noSaydWhereKnow}" id="NoWhereKnow"
+                            rendered="{!and(CurrentTask.account.WhereKnow__c == null, not(CurrentTask.isClone))}"
+                            onchange="rerenderNoKnow(this.checked, this.checked, this.checked)">
+                        </apex:inputCheckbox>
+                        <apex:outputLabel value="Не назвал" styleClass="label" for="NoWhereKnow"
+                            rendered="{!and(CurrentTask.account.WhereKnow__c == null, not(CurrentTask.isClone))}"/>
+                        <apex:actionStatus id="StatusNoWhereKnow">
+                            <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+                        </apex:actionStatus>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Уровень дохода"></apex:outputLabel>
+                    <apex:outputPanel id="incomeBlock">
+                        <apex:inputField value="{!CurrentTask.account.PersonalIncome__c}" 
+                            rendered="{!not(CurrentTask.noSaydIncome)}"
+                            required="{!and(not(CurrentTask.noSaydIncome), not(CurrentTask.isClone))}">
+                        </apex:inputField>
+                        <apex:inputText value="{!CurrentTask.account.PersonalIncome__c}"
+                            disabled="{!(CurrentTask.noSaydIncome)}"
+                            rendered="{!(CurrentTask.noSaydIncome)}">
+                        </apex:inputText>
+                        <apex:inputCheckbox label="noSaydIncome" value="{!CurrentTask.noSaydIncome}" id="NoCountEmp"
+                            rendered="{!and(CurrentTask.account.PersonalIncome__c == null, not(CurrentTask.isClone))}"
+                            onchange="rerenderNoIncome(this.checked)">
+                        </apex:inputCheckbox>
+                        <apex:outputLabel value="Не назвал" styleClass="label" for="NoCountImcome"
+                            rendered="{!and(CurrentTask.account.PersonalIncome__c == null, not(CurrentTask.isClone))}"></apex:outputLabel>
+                        <apex:actionStatus id="StatusNoIncome">
+                            <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+                        </apex:actionStatus>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                 <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Откуда узнали (уточнение)"></apex:outputLabel>
+                    <apex:outputPanel id="know2Block">
+                        <apex:inputField value="{!CurrentTask.account.WhereKnowDetail__c}" label="Откуда узнали (другое)"
+                            rendered="{!not(CurrentTask.noSaydWhereKnow2)}"
+                            required="{!and(not(CurrentTask.noSaydWhereKnow2), not(CurrentTask.isClone))}">
+                        </apex:inputField>
+                        <apex:inputText value="{!CurrentTask.account.WhereKnowDetail__c}" label="Откуда узнали (другое)"
+                            disabled="{!(CurrentTask.noSaydWhereKnow2)}"
+                            rendered="{!(CurrentTask.noSaydWhereKnow2)}">
+                        </apex:inputText>
+                        <apex:inputCheckbox label="noSaydWhereKnow2" value="{!CurrentTask.noSaydWhereKnow2}" id="NoWhereKnow2"
+                            rendered="{!and(CurrentTask.account.WhereKnowDetail__c == null, not(CurrentTask.isClone))}"
+                            onchange="rerenderNoKnow2(this.checked)">
+                        </apex:inputCheckbox>
+                        <apex:outputLabel value="Не назвал" styleClass="label" for="NoWhereKnow2" rendered="{!and(CurrentTask.account.WhereKnowDetail__c == null, not(CurrentTask.isClone))}"/>
+                        <apex:actionStatus id="StatusNoWhereKnow2">
+                            <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+                        </apex:actionStatus>
+
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Количество сотрудников"></apex:outputLabel>
+                    <apex:outputPanel id="empBlock">
+                        <apex:inputField value="{!CurrentTask.account.NumberOfEmployees}" label="Откуда узнали (другое)">
+                        </apex:inputField>
+                       <!--  <apex:inputText value="{!CurrentTask.account.NumberOfEmployees}" label="Откуда узнали (другое)"
+                            disabled="{!(CurrentTask.noSaydCountEmp)}"
+                            rendered="{!(CurrentTask.noSaydCountEmp)}">
+                        </apex:inputText> -->
+                        <apex:inputCheckbox label="noSaydCountEmp" value="{!CurrentTask.noSaydCountEmp}" id="NoEmp"
+                            rendered="{!and(CurrentTask.account.NumberOfEmployees == null, not(CurrentTask.isClone))}"
+                            onchange="rerenderNoEmp(this.checked)">
+                        </apex:inputCheckbox>
+                        <apex:outputLabel value="Не назвал" styleClass="label" for="NoEmp"
+                            rendered="{!and(CurrentTask.account.NumberOfEmployees == null, not(CurrentTask.isClone))}"/>
+                        <apex:actionStatus id="StatusNoEmp">
+                            <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+                        </apex:actionStatus>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+                 <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Откуда узнали (другое)"></apex:outputLabel>
+                    <apex:outputPanel id="knowOtherBlock">
+                        <apex:inputField value="{!CurrentTask.account.WhereKnowOther__c}" label="Откуда узнали (другое)"
+                            rendered="{!not(CurrentTask.noSaydWhereKnowOther)}"
+                            required="{!and(not(CurrentTask.noSaydWhereKnowOther), not(CurrentTask.isClone))}">
+                        </apex:inputField>
+                        <apex:inputText value="{!CurrentTask.account.WhereKnowOther__c}" label="Откуда узнали (другое)"
+                            disabled="{!(CurrentTask.noSaydWhereKnowOther)}"
+                            rendered="{!(CurrentTask.noSaydWhereKnowOther)}">
+                        </apex:inputText>
+                        <apex:inputCheckbox label="noSaydWhereKnowOther" value="{!CurrentTask.noSaydWhereKnowOther}" id="NoWhereKnow"
+                            rendered="{!and(CurrentTask.account.WhereKnowOther__c == null, not(CurrentTask.isClone))}"
+                            onchange="rerenderNoKnowOther(this.checked)">
+                        </apex:inputCheckbox>
+                        <apex:outputLabel value="Не назвал" styleClass="label" for="NoWhereKnowOther"
+                            rendered="{!and(CurrentTask.account.WhereKnowOther__c == null, not(CurrentTask.isClone))}"/>
+                        <apex:actionStatus id="StatusNoWhereKnowOther">
+                            <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+                        </apex:actionStatus>
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+			</apex:pageBlockSection>
+
+                <apex:pageBlockSection rendered="{!CurrentTask.isAccount || !CurrentTask.isPossibleAccount}" columns="1">
+                    <apex:pageBlockSectionItem >
+                        <apex:outputLabel value="Комментарий по клиенту"/>
+                        <apex:inputField value="{!CurrentTask.account.Description}" style="width: 100%; height: 60px"/>
+                    </apex:pageBlockSectionItem>
+                </apex:pageBlockSection>
+
+            <c:Opportunity Controller="{!CurrentTask.Controller}" rendered="{!and(CurrentTask.Mode == 'edit', CurrentTask.isOpportunity)}"/>
+
+            <apex:pageBlockSection title="Сведения о обращение" columns="1" rendered="{!CurrentTask.isCase}">
+                <apex:outputField value="{!CurrentTask.clientCase.CaseNumber}" label="Номер обращения"/>
+                <apex:outputField value="{!CurrentTask.clientCase.Subject}" label="Тема"/>
+                <apex:outputField value="{!CurrentTask.clientCase.PhoneToCall__c}" label="Статус" rendered="{!CurrentTask.clientCase.PhoneToCall__c != ''}"/>
+                <apex:outputField value="{!CurrentTask.clientCase.Status}" label="Статус"/>
+                <apex:outputField value="{!CurrentTask.clientCase.Description}" label="Описание"/>
+                <apex:outputField value="{!CurrentTask.clientCase.Type}" label="Тип"/>
+            </apex:pageBlockSection>
+
+            <apex:pageBlockSection title="Напоминание" columns="1">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Напоминание" for="FieldIsReminderSet"/>
+                    <apex:outputPanel >
+                        <apex:outputField value="{!CurrentTask.task.IsReminderSet}"
+                            rendered="{!or(CurrentTask.task.Status == 'Завершено', CurrentTask.task.Status == 'Выполняется')}"/> 
+                        
+                        
+                        <apex:inputCheckbox value="{!CurrentTask.task.IsReminderSet}" id="FieldIsReminderSet" 
+                            onclick="rerenderReminderDateTime( (this.checked == true ? true : false))" 
+                            rendered="{!CurrentTask.task.Status == 'Новая'}">
+                        </apex:inputCheckbox> 
+                        <apex:actionStatus id="StatusReminderDateTime">
+                            <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+                        </apex:actionStatus>
+                        
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+            <apex:pageBlockSection columns="1" showHeader="false" id="TaskReminderDateTime">
+            
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Напоминание" for="FieldIsReminderSet"/>
+                    <apex:outputPanel >
+                    
+                        <apex:outputField value="{!CurrentTask.task.ReminderDateTime}"  
+                            rendered="{!and(or(CurrentTask.task.Status == 'Завершено', CurrentTask.task.Status == 'Выполняется'), CurrentTask.task.IsReminderSet)}"/>
+                            
+                        <apex:inputField value="{!CurrentTask.task.ReminderDateTime}" id="FieldReminderDateTime" 
+                            rendered="{!and(CurrentTask.task.Status == 'Новая',CurrentTask.task.IsReminderSet)}" 
+                            required="{!CurrentTask.task.IsReminderSet}" 
+                            styleClass="ReminderDateTime"/>
+                    </apex:outputPanel> 
+                </apex:pageBlockSectionItem>            
+            
+
+            </apex:pageBlockSection>
+                                    
+            <apex:pageBlockSection title="История изменений">
+                <apex:outputText label="Создал">{!CurrentTask.task.CreatedBy.Name}&nbsp;&nbsp;&nbsp;<apex:outputField value="{!CurrentTask.task.CreatedDate}"/></apex:outputText>
+                <apex:outputField label="Последнее изменение сделано" value="{!CurrentTask.task.LastModifiedDate}" style="width:30%"/>
+            </apex:pageBlockSection>              
+        </apex:pageBlock>
+    </apex:form>
+    <apex:actionStatus id="theStatus" onstart="showDialog('Загрузка', 'Идет обработка');" />    
+    <apex:form rendered="{!CurrentTask.Mode == 'edit'}" id="FormIntrestProducts">
+        <apex:pageBlock rendered="{!CurrentTask.isOpportunity}">
+            <div style="padding:0px; font-size: 91%;">
+                <img src="{!$Resource.ImgBag}" style="vertical-align: middle; width: 32px; height: 32px" />
+                <h2 class="mainTitle" style="font-size: 1.3em;">Продукт интереса</h2>
+            </div>
+            <div></div>
+            <apex:pageBlockSection title="Продукт интереса" columns="1" showHeader="false"
+                rendered="{!IntrestProducts.CountOfAllProduct > 0}">
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel for="products2" value="Выберите продукт"/>
+                    <apex:outputPanel >
+                        <apex:selectList value="{!IntrestProducts.SelectedProduct}" 
+                            size="1" id="products2"> 
+                            <apex:selectOptions value="{!IntrestProducts.ProductOptions}"/>
+                        </apex:selectList>  
+                        <apex:commandButton value="Добавить" action="{!IntrestProducts.AddIntrestProduct}" oncomplete="refresh();" 
+                        status="theStatus"/>
+                    </apex:outputPanel>       
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+            
+            <apex:pageBlockSection showHeader="false" id="IntrestProducts" columns="1"> 
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel value="Продукты которым интересуется"/>
+                    <apex:outputPanel >
+                        <apex:pageMessage severity="info" strength="1" 
+                        summary="Продуктов нет" 
+                        rendered="{!IntrestProducts.CountOfIntrestProducts == 0}"/> 
+                        
+                        <apex:pageBlockTable value="{!IntrestProducts.IntrestProducts}" 
+                            var="p"
+                            rendered="{!IntrestProducts.CountOfIntrestProducts > 0}">
+                            <apex:column value="{!p.product.Product__c}"/>
+                            <apex:column >
+                                <apex:facet name="header">Дата добавления интересующего продукта</apex:facet>
+                                <apex:outputField value="{!p.product.CreatedDate}"/>
+                            </apex:column>
+                            <apex:column style="text-align: center">
+                                <apex:commandButton styleClass="remove"
+                                    action="{!p.Remove}" rerender="FormIntrestProducts" value="Удалить" oncomplete="refresh()" 
+                                    status="theStatus"/>
+                            </apex:column>
+                        </apex:pageBlockTable>
+                        
+                    </apex:outputPanel>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+            
+        </apex:pageBlock>
+    </apex:form>
+    <c:OpportunityFunctions Controller="{!CurrentTask.Controller}" rendered="{!and(CurrentTask.Mode == 'edit', CurrentTask.isOpportunity)}"/>
+
+    
+    
+
+    
+    <c:Tasks retURL="{!CurrentTask.task.id}" 
+        ValueNotId="{!CurrentTask.task.id}" 
+        ValueAccountId="{!CurrentTask.account.Id}" 
+        WhoId="{!CurrentTask.account.Id }"
+        Title="Другие задачи по заявке"
+        ShowCreateButton="false" 
+        Mode="full" 
+        rendered="{!or(CurrentTask.isOpportunity, CurrentTask.isCampaign, CurrentTask.isCase, CurrentTask.isAccount) && !CurrentTask.isPossibleAccount}"/>
+
+    <c:ListOfOpportunities ValueClientId="{!CurrentTask.account.id}" 
+        ValueNotOpportunityId="{!if(CurrentTask.isOpportunity, CurrentTask.opportunity.Id, '')}" 
+        Title="Другие заявки по {!CurrentTask.textField2}"
+        rendered="{!and(or(CurrentTask.isAccount, CurrentTask.isCampaign), CurrentTask.Mode == 'view')}"/>
+       
+    </apex:outputPanel>
+    
+    <c:ListOfDoubleClients mode="full" ValueClientId="{!CurrentTask.account.id}" 
+        rendered="{!and(CurrentTask.isAccount, CurrentTask.Mode == 'view', !CurrentTask.isPossibleAccount)}"/>
+
+	<apex:form id="PopupSection">
+		<apex:outputPanel styleClass="PopUpBackground" layout="block" rendered="{!isPopupVisible}" />
+		<apex:outputPanel styleClass="PopUpBody" layout="block" rendered="{!isPopupVisible}">
+			<apex:pageBlock rendered="{!CurrentTask.isPossibleAccount}">
+				<apex:pageBlockButtons location="top">
+					<apex:commandButton action="{!hidePopupForm}" value="Отмена" reRender="PopupSection"/>
+					<apex:commandButton action="{!assignAccountAndCreateTask}" value="Сохранить" reRender="PopupSection"/>
+				</apex:pageBlockButtons>
+				<apex:pageBlockSection>
+					<apex:repeat value="{!CurrentTask.likeAccounts}" var="account">
+  		    	       	<apex:pageBlockSectionItem>
+           			    	<apex:outputLabel value="Клиент"/>
+           			    	<apex:outputPanel >
+           			   			<img src="/s.gif" class="clientIcon icon"/>
+           			   			<apex:inputField value="{!account.AccountLink__c}"/>
+       	    		    	</apex:outputPanel>
+        	   		    </apex:pageBlockSectionItem>
+					</apex:repeat>
+				</apex:pageBlockSection>
+				<br />
+				<br />
+				<br />
+				<apex:pageBlockSection>
+  		    	    <apex:pageBlockSectionItem>
+  		    	    	<apex:outputLabel value="Выбранный клиент" />
+						<apex:inputField value="{!CurrentTask.accountLookup.AccountUl__c}" />
+        	   		</apex:pageBlockSectionItem>
+				</apex:pageBlockSection>
+			</apex:pageBlock>
+		</apex:outputPanel>
+	</apex:form>
+
+	<script>
+		(function() {
+			var windowOnload = window.onload;
+			window.onload = function() {
+				if (windowOnload) windowOnload();
+				var select = document.getElementById('calYearPicker');
+				if (!select) return;
+				select.innerHTML = '';
+				var startYear = new Date().getFullYear() - 90;
+				for (var year = startYear; year < startYear + 80; year++) {
+					select.options[select.options.length] = new Option(year, year);
+				}
+			}
+		}());
+
+		j$ = jQuery.noConflict();
+
+		function checking(id) {
+			alert(document.getElementById(id).selected);
+		}
+
+		function refreshWindow() {
+			window.location.href=window.location.href;
+		}
+
+		function showDialog(stitle, sbody) {
+			var box = new SimpleDialog("hersh"+Math.random(), false);
+			parent.box = box;
+			box.setTitle(stitle);
+			box.createDialog();
+			box.setWidth(350);
+			box.setContentInnerHTML("<p align='center'>" + sbody + "</p><p align='center'>Подождите</p>");
+			box.setupDefaultButtons();
+			box.show();
+		}
+
+		function hideDialog() {
+			parent.window.box.hide();
+		}
+
+		function hideButton() {
+			if ({!CurrentTask.FindInAutoTask}) {
+				document.getElementsByClassName('SaveAndCreate')[0].style.display = 'none';
+				document.getElementsByClassName('SaveAndCreate')[1].style.display = 'none';
+			} else {
+				document.getElementsByClassName('SaveAndCreate')[0].style.display = 'inline-block';
+				document.getElementsByClassName('SaveAndCreate')[1].style.display = 'inline-block';
+			}
+		}
+
+		function ApplyToReminderDateTime(value) {
+			document.getElementsByClassName('ReminderDateTime')[0].value = value;
+		}
+	</script>
+
+</apex:page>

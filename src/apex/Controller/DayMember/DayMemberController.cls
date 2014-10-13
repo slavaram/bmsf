@@ -1,0 +1,150 @@
+public with sharing class DayMemberController {
+
+	public Account client			{get; set;}
+	public Boolean isSendAllTask	{get; set;}
+	public Boolean isLoan			{get; private set;}
+	public String loanStatus		{get; private set;}
+	public String seatType			{get; private set;}
+	public Boolean cardGranted		{get; set;}
+
+	public String countTask			{get; set;}
+	public String countProfit		{get; set;}
+	public String countBad			{get; set;}
+	public String countChecked		{get; set;}
+	public String numberPromo		{get; set;}
+	public String numberPromo2		{get; set;}
+
+	public PromoCode__c promo1		{get; set;}
+	public Boolean doubPromo1		{get; set;}
+	public Boolean noFoundPromo1	{get; set;}
+	public PromoCode__c promo2		{get; set;}
+	public Boolean doubPromo2		{get; set;}
+	public Boolean noFoundPromo2	{get; set;}
+
+	public Map<Id, List<BODayMember.DayMember>> dayMembers		{get; set;}
+	public List<ApplicationsActivities__c> opportunityEvents	{get; set;}
+
+	public Integer dayMembersSize {
+		get {return dayMembers.size();} 
+		set;
+	}
+
+	{
+		dayMembers		= new Map<Id, List<BODayMember.DayMember>>();
+		isLoan			= false;
+		cardGranted		= false;
+		actSigned		= false;
+	}
+
+	public DayMemberController(ApexPages.Standardcontroller controller) {
+	 	init(controller.getId(), ApexPages.currentPage().getParameters().get('LoanStatus'));
+	}
+
+	private void init(String accountId, String status) {
+		Client = [SELECT Name, Id, Phone, PersonEmail, Owner__c, isCardGiven__c FROM Account WHERE Id = :accountId].get(0);
+		if (status != '' && status != null && status == 'Акт по кредиту сформирован') {
+			isLoan = true;
+			loanStatus = status;
+		}
+		cardGranted					= client.isCardGiven__c;
+		BODayMember dayMemberData	= new BODayMember(Date.today(), client.Id);
+		opportunityEvents			= dayMemberData.opportunityEvents.values();
+		dayMembers					= dayMemberData.getDayMemders();
+		seatType					= (opportunityEvents.isEmpty() ? ' - ' : opportunityEvents.get(0).OpportunityId__r.SeatType__c);
+		statusSendAllTask();
+	}
+
+	private void statusSendAllTask() {
+		if (opportunityEvents.size() > 0) {
+			List<ReportStatistic__c> hws = [SELECT Id, Checked__c
+			                                FROM ReportStatistic__c
+			                                WHERE EventId__c = :OpportunityEvents[0].ActionID__r.ParentId__c
+			                                AND AccountId__c = :Client.Id];
+			Boolean good = True;
+			Integer countT = 0;
+			Integer countC = 0;
+			Integer countB = 0;
+			Integer countP = 0;
+			countT = hws.size();
+			for (ReportStatistic__c hw: hws) {
+				if (hw.Checked__c == 'Отклонено') {
+					countB++;
+					countC++;
+				}
+				if (hw.Checked__c == 'Принято')	{
+					countP++;
+					countC++;
+				}
+			} 
+			countChecked	= String.valueOf(countC) + '/10';
+			countProfit		= String.valueOf(countP) + '/10';
+			countBad		= String.valueOf(countB) + '/10';
+			countTask		= String.valueOf(countT) + '/10';
+		}
+	}
+
+	public PageReference getPromoCode() {
+		promo1 = null;
+		promo2 = null;
+		String qCode = getNumberPromo(numberPromo);
+		try{
+			promo1 = [SELECT Id, AccountId__c, Name, Code__c, Status__c FROM PromoCode__c WHERE Code__c LIKE :qCode];
+			if (promo1.AccountId__c != null) {
+				doubPromo1 = true;
+			}
+		} catch (System.QueryException ex) {}
+		qCode = getNumberPromo(numberPromo2);
+		try {
+			promo2 = [SELECT Id, AccountId__c, Name, Code__c, Status__c FROM PromoCode__c WHERE Code__c LIKE :qCode];
+			if (promo2.AccountId__c != null) {
+				doubPromo2 = true;
+			}
+		}
+		catch(System.QueryException ex)	{}
+		return null;
+	}
+
+	public PageReference save() {
+		List<DayMember__c> toDelete = new List<DayMember__c>();
+		List<DayMember__c> toInsert = new List<DayMember__c>();
+		if (promo1 != null && doubPromo1 != true) {
+			promo1.AccountId__c = client.Id;
+			promo1.Status__c = 'Новый';
+			update promo1;
+		}
+		if (promo2 != null && doubPromo2 != true) {
+			promo2.AccountId__c = client.Id;
+			promo2.Status__c = 'Новый';
+			update promo2;
+		}
+		for (List<BODayMember.DayMember> items : dayMembers.values()) {
+			for (BODayMember.DayMember item : items) {
+				if (item.member.Id != null ) {
+					if (!item.member.IsPassed__c && !item.readOnly) toDelete.add(item.member);
+				} else {
+					if (item.member.IsPassed__c && !item.readOnly) toInsert.add(item.member);
+				}
+			}
+		}
+		if (!ToDelete.isEmpty()) delete toDelete;
+		if (!ToInsert.isEmpty()) insert toInsert;
+	    update new Account(Id = client.Id, isCardGiven__c = cardGranted);
+	    return (toInsert.isEmpty() ? null : (new ApexPages.StandardController(toInsert.get(0))).view());
+	}
+
+	private String getNumberPromo(String code) {
+		String res = code;
+		Integer delta;
+		if (res.length() < 4) {
+			delta = 4 - res.length();
+		}
+		String temp = '';
+		for (Integer i = 0; i < delta; i++)	{
+			temp = temp + '0';
+		}
+		res = temp + res;
+		res = '%ОП02' + res + '%';
+		return res;
+	}
+
+}

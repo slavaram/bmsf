@@ -1,0 +1,171 @@
+<apex:page controller="TaskAttachController">
+
+	<style>
+		input.input  {
+			width: 156px ;
+			height: 15px ;
+			margin-top: 2px ;
+			margin-bottom: 2px ;
+		}
+		select.input  {
+			width: 160px ;
+		}
+		.activeTab {
+			background-color: #236FBD; 
+			color:white; 
+			background-image: none;
+		}
+		.inactiveTab {
+			background-color: #D3D3D3; 
+			color: black; 
+			background-image: none;
+		}
+		#FilterForSearch {
+			margin: 10px 0px 10px 50px;
+		}
+		#FilterForSearch td {
+			padding: 0px 5px 0px 5px;
+		}
+		.LabelCell {
+			float: right;
+			font-weight: bold;
+			margin-top: 4px;
+		}
+		.AlarmText {
+			margin-left: 10px;
+			color: red;
+		}
+	</style>
+
+
+	<apex:sectionHeader title="Задачи" subtitle="Управление задачами менеджеров" id="TheSectionHeader"/>
+
+	<apex:pageMessages />
+
+	<apex:form id="TheForm">
+
+		<table id="FilterForSearch">
+			<tr>
+				<td class="LabelCell">
+					<apex:outputLabel value="Старший менеджер" />
+				</td>
+				<td>
+					<apex:selectList value="{!mGroup}" size="1" multiselect="false" styleClass="input">
+						<apex:selectOptions value="{!mGroups}"/>
+						<apex:actionSupport event="onchange" action="{!processUsers}" status="refreshUsers" reRender="UsersList,AttachTabs,AutofocusInput"/>
+					</apex:selectList>
+				</td>
+				<td>
+					<apex:actionStatus id="refreshUsers">
+					    <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+					</apex:actionStatus>
+				</td>
+			</tr>
+
+			<tr>
+				<td class="LabelCell">
+					<apex:outputLabel value="Менеджер(ы)" />
+				</td>
+				<td>
+					<apex:selectList value="{!mUsers}" size="5" multiselect="true" id="UsersList" styleClass="input">
+						<apex:selectOptions value="{!mAllUsers}"/>
+						<apex:actionSupport event="onchange" action="{!processTasks}" status="processTasks" reRender="AttachTabs,AutofocusInput"/>
+					</apex:selectList>
+				</td>
+				<td>
+					<apex:actionStatus id="processTasks">
+						<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+					</apex:actionStatus>
+				</td>
+			</tr>
+
+			<tr>
+				<td class="LabelCell">
+					<apex:outputLabel value="Дедлайн" />
+				</td>
+				<td>
+					<apex:inputField value="{!mActivityDate.Date__c}" styleClass="input" showDatePicker="true" id="DeadlineInput">
+						<apex:actionSupport event="onchange" action="{!processTasks}" status="setDeadline" reRender="AttachTabs,AutofocusInput"/>
+					</apex:inputField>
+				</td>
+				<td>
+					<apex:actionStatus id="setDeadline">
+						<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+					</apex:actionStatus>
+				</td>
+			</tr>
+		</table>
+
+		<apex:tabPanel switchType="client" id="AttachTabs" selectedTab="TasksTab" tabClass="activeTab" inactiveTabClass="inactiveTab">
+
+			<apex:tab id="TasksTab" label="Задачи ({!mTasksCount})">
+				<apex:pageBlock id="UserTasks"  rendered="{!mTasksCount > 0}">
+					<apex:pageBlockButtons >
+						<apex:commandButton action="{!saveTasks}" value="Сохранить"/>
+						<apex:commandButton action="{!processTasks}" value="Отменить"/>
+					</apex:pageBlockButtons>
+					<apex:pageBlockTable value="{!mTasks}" var="task" width="100%" styleClass="tableOfTasks" id="TasksTable">
+						<apex:column headerValue="Название">
+							<apex:outputText value="{!task.Subject}" />
+						</apex:column>
+						<apex:column headerValue="Тип">
+							<apex:outputText value="{!task.Task__c}" />
+						</apex:column>
+					    <apex:column headerValue="Создана">
+					        <apex:outputText value="{!task.CreatedDate}" />
+					    </apex:column>
+					    <apex:column headerValue="Статус">
+					        <apex:outputText value="{!task.Status}" />
+					    </apex:column>
+					    <apex:column headerValue="Дедлайн">
+					        <apex:inputField value="{!task.ActivityDate}" />
+					        <apex:outputText value="Просрочена" rendered="{!task.ActivityDate < mToday.Date__c}"  styleClass="AlarmText" />
+					    </apex:column>
+					    <apex:column headerValue="Назначена">
+					       	<apex:selectList value="{!task.OwnerId}" size="1" multiselect="false">
+						   		<apex:selectOptions value="{!mAllUsers}" />
+						   	</apex:selectList>
+					    </apex:column>
+					</apex:pageBlockTable>
+				</apex:pageBlock>
+				<apex:outputText value="Нет задач" rendered="{!mTasksCount = 0}"/>
+			</apex:tab>
+
+			<apex:tab id="QuickAttachTab" label="Быстрое распределение">
+				<apex:pageBlock id="Multiselect" rendered="{!mTasksCount > 0}">
+					<apex:pageBlockButtons >
+						<apex:commandButton action="{!shareTasks}" value="Распределить" />
+						<apex:commandButton action="{!processTasks}" value="Отменить"/>
+					</apex:pageBlockButtons>
+					<apex:pageBlockSection columns="2">
+						<apex:inputCheckbox label="Учитывать текущие задачи" value="{!mIsTricklyShare}" />
+					</apex:pageBlockSection>
+					<apex:pageBlockSection columns="2">
+						<apex:inputField label="Новый дедлайн" value="{!mNewActivityDate.Date__c}" styleClass="input" showDatePicker="true" id="NewDeadlineInput" />
+					</apex:pageBlockSection>
+					<apex:pageBlockSection columns="2">
+						<apex:outputPanel >
+							<c:MultiselectPicklist leftLabel="Менеджеры в группе" leftOption="{!mUsersForPick}" rightLabel="Распределить на" rightOption="{!mUsersPicked}" size="14" width="160px"/>
+						</apex:outputPanel>
+					</apex:pageBlockSection>
+				</apex:pageBlock>
+				<apex:outputText value="Нет задач" rendered="{!mTasksCount = 0}"/>
+			</apex:tab>
+
+		</apex:tabPanel>
+
+	</apex:form>
+
+
+	<script type="text/javascript">
+		var previousOnload = window.onload;
+
+		window.onload = function() {
+			if (previousOnload) { 
+				previousOnload();
+			}
+			// TODO
+		}
+	</script>
+
+</apex:page>

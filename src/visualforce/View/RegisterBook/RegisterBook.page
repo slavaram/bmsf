@@ -1,0 +1,326 @@
+<apex:page controller="RegisterBookController">
+
+	<style type="text/css">
+		input.input  {
+			width: 156px ;
+			height: 15px ;
+			margin-top: 2px ;
+			margin-bottom: 2px ;
+		}
+		select.input  {
+			width: 160px ;
+		}
+		.LabelCell {
+			text-align: right;
+			font-weight: bold;
+		}
+		#FilterForSearch {
+			margin: 10px 0px 10px 50px;
+		}
+		#TheDatesTable {
+			margin: 5px 0px 10px 0px;
+		}
+		#FilterForSearch td,
+		#TheDatesTable td {
+			padding-left: 20px;
+			vertical-align: middle;
+		}
+		#FromDataPicker {
+			width: 400px;
+			float: left;
+			margin-left: 100px;
+		}
+		#ToDataPicker {
+			width: 400px;
+			float: right;
+			margin-right: 100px;
+		}
+		.activeTab {
+			background-color: #236FBD; 
+			color:white; 
+			background-image: none;
+		}
+		.inactiveTab {
+			background-color: #D3D3D3; 
+			color: black; 
+			background-image: none;
+		}
+		.AutofocusInput,
+		.HeaderOnly {
+			display: none;
+		}
+		.RegisterTable {
+			margin: 10px 10px 10px 200px;
+		}
+		.RegisterTable th {
+			padding: 10px 10px 10px 10px;
+			text-align: center;
+			font-size: 1.2em;
+		}
+		.RegisterTable td {
+			height: 23px;
+			min-width: 60px;
+			text-align: center;
+			padding-top: 4px;
+		}
+		.RegisterTable td:first-child {
+			min-width: 100px;
+			text-align: left;
+			vertical-align: middle;
+		}
+		.Icon {
+			width: 24px;
+			height: 24px;
+		}
+		#TableRegisters {
+			margin: 10px 20px 0px 200px; 
+		}
+		#TableRegisters td {
+			vertical-align: middle;
+			margin-left: 20px;
+		}
+		.PhotoImg {
+			height: 32px;
+			width: 32px;
+			margin-right: 3px;
+		}
+		.RegisterSelect {
+			margin-left: 20px;
+			margin-right: 20px;
+		}
+		.{!CSS_HEADER_CLASS} {
+			background-color: #52A1D1 !important;
+		}
+	</style>
+
+
+	<apex:sectionHeader title="Журнал посещаемости" subtitle="Просмотр и управление посещаемостью менеджеров" id="TheSectionHeader"/>
+
+	<apex:pageMessages id="Messages"/>
+
+	<apex:form id="TheForm">
+
+		<table id="FilterForSearch">
+			<tr>
+				<td class="LabelCell">
+					<apex:outputLabel value="Старший менеджер:" />
+				</td>
+				<td>
+					<apex:selectList value="{!mGroup}" size="1" multiselect="false" styleClass="input">
+						<apex:selectOptions value="{!mGroups}"/>
+						<apex:actionSupport event="onchange" action="{!processGroup}" status="refreshUsers" reRender="ActionsTabs,Messages" oncomplete="fixManagerRowWidth()"/>
+					</apex:selectList>
+				</td>
+				<td>
+					<apex:actionStatus id="refreshUsers" onstop="validateRegisters()">
+						<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+					</apex:actionStatus>
+				</td>
+			</tr>
+		</table>
+
+		<apex:tabPanel switchType="client" id="ActionsTabs" selectedTab="CalendarTab" tabClass="activeTab" inactiveTabClass="inactiveTab">
+
+			<apex:tab id="CalendarTab" label="Журнал">
+				<apex:pageBlock id="CalendarBlock">
+					<apex:pageBlockButtons >
+						<apex:commandButton action="{!downloadCalendar}" value="Загрузить таблицу"/>
+					</apex:pageBlockButtons>
+
+					<div id="FromDataPicker">
+					<table id="TheDatesTable">
+						<tr>
+							<td class="LabelCell">C</td>
+							<td>
+								<apex:inputField value="{!mFromDate.Date__c}" styleClass="input" showDatePicker="true" id="FromDate">
+									<apex:actionSupport event="onchange" action="{!processDates}" status="setFromDate" reRender="CalendarTable,Messages" oncomplete="fixManagerRowWidth()"/>
+								</apex:inputField>
+							</td>
+							<td class="LoaderIcon">
+								<apex:actionStatus id="setFromDate" onstop="validateRegisters()">
+									<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+								</apex:actionStatus>
+							</td>
+						</tr>
+					</table>
+					</div>
+
+					<div id="ToDataPicker">
+					<table id="TheDatesTable">
+						<tr>
+							<td class="LabelCell">По</td>
+							<td>
+								<apex:inputField value="{!mByDate.Date__c}" styleClass="input" showDatePicker="true" id="ToDate">
+									<apex:actionSupport event="onchange" action="{!processDates}" status="setToDate" reRender="CalendarTable,Messages" oncomplete="fixManagerRowWidth()"/>
+								</apex:inputField>
+							</td>
+							<td class="LoaderIcon">
+								<apex:actionStatus id="setToDate" onstop="validateRegisters()">
+									<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+								</apex:actionStatus>
+							</td>
+						</tr>
+					</table>
+					</div>
+
+					<apex:outputPanel layout="block" style="overflow:auto;width:100%;height:auto;" id="StretchPanel">
+						<apex:pageBlockTable id="CalendarTable" var="row" value="{!mRows}">
+							<apex:repeat value="{!mHeaders}" var="header">
+								<apex:column headerValue="{!header.headerValue}" headerClass="{!header.cssClassName}" styleClass="HeaderOnly"/>
+							</apex:repeat>
+							<apex:repeat var="cell" value="{!row.cells}">
+								<apex:column headerValue="">
+									<apex:outputPanel rendered="{!cell.isUser = true}">
+										<img src="{!cell.imgUrl}" class="PhotoImg" />
+										<apex:outputLink value="/{!cell.textUrl}" target="_parent" ><apex:outputText value="{!cell.name}" /></apex:outputLink>
+									</apex:outputPanel>
+									<apex:outputPanel rendered="{!cell.isUser = false && cell.register = RECORD_VALUE_YES}">
+										<img src="{!$Resource.Yes_Icon}" class="Icon" />
+									</apex:outputPanel>
+									<apex:outputPanel rendered="{!cell.isUser = false && cell.register = RECORD_VALUE_NO}">
+										<img src="{!$Resource.No_Icon}" title="{!cell.reason}" class="Icon" />
+									</apex:outputPanel>
+									<apex:outputPanel rendered="{!cell.isUser = false && cell.register = RECORD_VALUE_MAYBE}">
+										<img src="{!$Resource.Maybe_Icon}" class="Icon" />
+									</apex:outputPanel>
+								</apex:column>
+							</apex:repeat>
+						</apex:pageBlockTable>
+					</apex:outputPanel>
+				</apex:pageBlock>
+			</apex:tab>
+
+			<apex:tab id="GroupRegisterTab" label="Отметить день" rendered="{!mIsEditMode}">
+				<apex:pageBlock id="GroupRegisterBlock">
+					<apex:pageBlockButtons >
+						<apex:commandButton action="{!saveRegisters}" value="Сохранить"/>
+						<apex:commandButton action="{!processGroup}" value="Отменить"/>
+					</apex:pageBlockButtons>
+					<table id="TableRegisters">
+						<tr>
+							<td class="LabelCell">День:</td>
+							<td id="TableRegistersMiddleCell">
+								<apex:selectList value="{!mRegistrationDate}" size="1" multiselect="false" styleClass="input">
+									<apex:selectOptions value="{!mRegistrationDates}"/>
+									<apex:actionSupport event="onchange" action="{!processRegisters}" status="refreshRegisters" reRender="GroupRegisterPanel"/>
+								</apex:selectList>
+							</td>
+							<td>
+								<apex:actionStatus id="refreshRegisters">
+									<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+								</apex:actionStatus>
+							</td>
+						</tr>
+						<tr>
+							<td class="LabelCell">Ответственный:</td>
+							<td>
+								<apex:outputText value="{!$User.FirstName} {!$User.LastName}" />
+							</td>
+							<td></td>
+						</tr>
+					</table>
+					<apex:outputPanel id="GroupRegisterPanel">
+						<apex:dataTable value="{!mRegisters}" var="reg" styleClass="RegisterTable" id="GroupRegisterTable">
+							<apex:column headerValue="Менеджер" value="{!reg.UserId__c}"/>
+							<apex:column headerValue="Запись">
+								<apex:selectList value="{!reg.Register__c}" size="1" multiselect="false" styleClass="input RegisterSelect">
+									<apex:selectOptions value="{!mRegisterValues}"/>
+									<apex:actionSupport event="onchange" status="showReasonList" reRender="GroupRegisterPanel"/>
+								</apex:selectList>
+							</apex:column>
+							<apex:column headerValue="Причина">
+								<apex:actionStatus id="showReasonList" rendered="{!reg.Register__c != RECORD_VALUE_NO}">
+									<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+								</apex:actionStatus>
+								<apex:selectList value="{!reg.Reason__c}" size="1" multiselect="false" styleClass="input ReasonSelect"  rendered="{!reg.Register__c = RECORD_VALUE_NO}">
+									<apex:selectOptions value="{!mReasonValues}"/>
+								</apex:selectList>
+							</apex:column>
+						</apex:dataTable>
+					</apex:outputPanel>
+				</apex:pageBlock>
+			</apex:tab>
+
+			<apex:tab id="UserRegisterTab" label="Отметить отпуск" rendered="{!mIsEditMode}">
+				<apex:pageBlock >
+					<apex:pageBlockButtons >
+						<apex:commandButton action="{!saveLeaveRegister}" value="Сохранить"/>
+						<apex:commandButton action="{!processGroup}" value="Отменить"/>
+					</apex:pageBlockButtons>
+					<apex:pageBlockSection >
+						<apex:outputText label="Дата:" value="{!mToday}" /> 
+					</apex:pageBlockSection>
+					<apex:pageBlockSection >
+						<apex:outputText label="Ответственный:" value="{!$User.FirstName} {!$User.LastName}" /> 
+					</apex:pageBlockSection>
+					<apex:pageBlockSection >
+						<apex:selectList label="Менеджер" value="{!mUser}" size="1" multiselect="false" styleClass="input">
+							<apex:selectOptions value="{!mUsers}"/>
+						</apex:selectList>
+					</apex:pageBlockSection>
+					<apex:pageBlockSection columns="3">
+						<apex:inputField label="С" value="{!mFromLeaveDate.Date__c}" styleClass="input" showDatePicker="true" id="FromLeaveDate" />
+					</apex:pageBlockSection>
+					<apex:pageBlockSection columns="3">
+						<apex:inputField label="По (включительно)" value="{!mToLeaveDate.Date__c}" styleClass="input" showDatePicker="true" id="ToLeaveDate" />
+					</apex:pageBlockSection>
+				</apex:pageBlock>
+			</apex:tab>
+
+		</apex:tabPanel>
+
+	</apex:form>
+
+	<script type="text/javascript">
+
+		var blockWidth;
+		var previousOnload = window.onload;
+
+		window.onload = function() {
+			if (previousOnload) { 
+				previousOnload();
+			}
+			onloadWork();
+		}
+
+		function onloadWork() {
+			if (blockWidth === undefined) {
+				var block = document.getElementById('{!$Component.TheForm.CalendarBlock}');
+				blockWidth = block.offsetWidth;
+			}
+			stretchTable();
+		}
+
+		function triggerReason(element) {
+			var select = element.parentNode.parentNode.getElementsByTagName('select');
+			var span = element.parentNode.parentNode.getElementsByTagName('span');
+			if (element.checked) {
+				select[0].style.display = 'none';
+				span[1].style.display = 'block';
+			} else {
+				select[0].style.display = 'block';
+				span[1].style.display = 'none';
+			}
+		}
+		
+		function validateRegisters() {
+			var table = document.getElementById('{!$Component.TheForm.GroupRegisterBlock.GroupRegisterTable}');
+			var rows = table.GetElementsByTagName('tr');
+			stretchTable();
+		}
+
+		function stretchTable() {
+			var panel = document.getElementById('{!$Component.TheForm.CalendarBlock.StretchPanel}');
+			panel.style.width = (blockWidth - 40) + 'px';
+		}
+
+		function fixManagerRowWidth() {
+			var table = document.getElementById('{!$Component.TheForm.CalendarBlock.CalendarTable}');
+			var th = table.getElementsByTagName('th');
+			th[0].style.minWidth = '180px';
+		}
+
+	</script>
+
+
+</apex:page>

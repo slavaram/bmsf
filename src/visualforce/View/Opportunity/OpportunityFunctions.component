@@ -1,0 +1,35 @@
+<apex:component id="OpportunityFunctions" access="global" allowDML="true">
+	<apex:attribute name="Controller" type="OpportunityEntity" access="global" description=""/>
+
+	<apex:form id="ApexFunctions">
+		<apex:actionFunction reRender="PanelFreezingToAction" name="rerenderFreezingToAction" status="StatusFreezing">
+			<apex:param name="ParamisFreezing" assignTo="{!Controller.thisOpportunity.Freezing__c}" value="" />
+			<apex:param name="ParamisFreezingToAction" assignTo="{!Controller.thisOpportunity.FreezingToAction__c}" value="" />
+		</apex:actionFunction>
+		
+		<apex:actionFunction reRender="MyActions" name="rerenderActions" status="StatusProduct" action="{!Controller.GetListActions}">
+			<apex:param name="ParamProductId" assignTo="{!Controller.FieldProduct}" value="" />  
+		</apex:actionFunction>
+
+		<apex:actionFunction reRender="MyActions, MyActionsMode" name="rerenderModeActions" status="StatusActionsMode">
+			<apex:param name="ParamActionsMode" assignTo="{!Controller.ActionsMode}" value="" />  
+		</apex:actionFunction>
+
+	    <!-- функции по изменению статуса -->
+	    
+		<apex:actionFunction reRender="OpportunityReasonRefusal, AutoTask" 
+				name="rerenderReasonRefusal" 
+				status="StatusReasonRefusal"
+				action="{!Controller.AutoTask.SetAutoTask}">
+			<apex:param name="StageName" assignTo="{!Controller.thisOpportunity.StageName}" value="" />
+			<apex:param name="AutoTaskStageName" assignTo="{!Controller.AutoTask.StageName}" value="" />  
+		</apex:actionFunction>
+	 
+	 	<apex:actionFunction reRender="AutoTask" name="isNextTask" status="StatusAutoTask">
+			<apex:param name="ParamisCreateNextTask" assignTo="{!Controller.AutoTask.isCreateNextTask}" value="" />  
+		</apex:actionFunction>
+		
+	</apex:form>
+
+
+</apex:component>

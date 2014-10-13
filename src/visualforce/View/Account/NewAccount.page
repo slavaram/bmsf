@@ -1,0 +1,150 @@
+<apex:page standardController="Account" extensions="NewAccountController" title="Создание нового клиента">
+	<apex:sectionHeader subtitle="Новая организация"
+						title="Редактирование сведений об организации"
+						description="Заполните поля для проверки на наличие схожих записей"/>
+
+	<apex:pageMessages />
+
+	<apex:actionStatus id="theStatus" onstart="showDialog('Загрузка', 'Идет обработка');" onstop="hideDialog();"/>
+    <apex:form id="f">
+
+        <apex:pageBlock title="Создание новой организации" mode="edit" id="form">
+            <apex:pageMessage severity="info" id="warningName" strength="2"
+            				summary="Поле 'Имя организации' не заполнено. Поиск не производится."
+            				rendered="{!isNameWarning}"/>
+            <apex:pageMessage severity="info" id="warningRT" strength="2"
+            				summary="Необходимо выбрать тип записи"
+            				rendered="{!isRtNotSelected}"/>
+            <apex:pageMessage severity="info" id="warningEmail" strength="2"
+            				summary="Поле 'Эл.почта' не заполненно. Поиск не производится."
+            				rendered="{!isEmailWarning}"/>
+
+			<apex:pageBlockButtons >
+				<apex:commandButton action="{!createNewAcc}" value="Создать" id="newaccButton" rerender="f" status="theStatus" disabled="{!isFound}"/>
+                <apex:commandButton action="{!cancel}" value="Отмена" id="cancelButton"/>
+            </apex:pageBlockButtons>
+
+            <!-- выбираем тип записи, в зависимости от поля isPersonal будем скрывать или показывать поля -->
+            <apex:pageBlockSection title="Физ лицо" showHeader="false" columns="1" rendered="{!isPersonal}">
+                <apex:pageBlocksectionItem >
+                    <apex:outputlabel value="{!$ObjectType.RecordType.label}"/>
+                    <apex:actionRegion >
+                    <apex:selectList id="theRTList" value="{!selectedRT}" size="1">
+                        <apex:selectOptions value="{!recordTypeList}"/> 
+                        <apex:actionSupport event="onchange" rerender="f" />
+                    </apex:selectList>
+                    </apex:actionRegion>
+                </apex:pageBlocksectionItem> 
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputlabel value="{!$ObjectType.Account.fields.PersonEmail.label}"/>
+                    <apex:inputField value="{!Acc.PersonEmail}" required="true"/>
+                </apex:pageBlockSectionItem>
+           
+                <apex:pageBlockSectionItem >
+                    <apex:outputlabel value="{!$ObjectType.Account.fields.FirstName.label}"/>
+                    <apex:inputText value="{!FirstName}" required="false"/> 
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputlabel value="{!$ObjectType.Account.fields.NoName__c.label}"/>
+                    <apex:inputCheckbox value="{!Acc.NoName__c}" required="false"/>
+                </apex:pageBlockSectionItem> 
+                
+                <apex:pageBlockSectionItem >
+                    <apex:outputlabel value="{!$ObjectType.Account.fields.LastName.label}"/>
+                    <apex:inputText value="{!LastName}" required="false"/>
+                </apex:pageBlockSectionItem>
+ 
+                 <apex:pageBlockSectionItem >
+                    <apex:outputlabel value="{!$ObjectType.Account.fields.NoLastName__c.label}"/>
+                    <apex:inputCheckbox value="{!Acc.NoLastName__c}" required="false"/>
+                </apex:pageBlockSectionItem>
+  
+                <apex:pageBlockSectionItem >
+                    <apex:outputlabel value="{!$ObjectType.Account.fields.CountryCode__c.label}"/>
+                    <apex:inputField value="{!Acc.CountryCode__c}" required="false"/>
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputlabel value="{!$ObjectType.Account.fields.CityCode__c.label}"/>
+                    <apex:inputField value="{!Acc.CityCode__c}" required="false"/>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputlabel value="{!$ObjectType.Account.fields.PhoneNumber__c.label}"/>
+                    <apex:inputField value="{!Acc.PhoneNumber__c}" required="false"/>
+                </apex:pageBlockSectionItem>
+                  
+                <apex:pageBlockSectionItem >
+                    <apex:outputlabel value="{!$ObjectType.Account.fields.NoPhone__c.label}"/>
+                    <apex:inputCheckbox value="{!Acc.NoPhone__c}" required="false"/>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>
+
+            <apex:pageBlockSection title="Юр лицо" showHeader="false" columns="1" rendered="{!not isPersonal}">
+                <apex:pageBlocksectionItem >
+                    <apex:outputlabel value="{!$ObjectType.RecordType.label}"/>                  
+                    <apex:actionRegion >
+                    <apex:selectList id="theRTList" value="{!selectedRT}" size="1">
+                        <apex:selectOptions value="{!recordTypeList}"/> 
+                        <apex:actionSupport event="onchange" rerender="f" />
+                    </apex:selectList>
+                    </apex:actionRegion>
+                </apex:pageBlocksectionItem> 
+                
+                <apex:pageBlockSectionItem >
+                    <apex:outputlabel value="Наименование"/>
+                    <apex:inputField value="{!Acc.Name}" required="true"/>
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputlabel value="{!$ObjectType.Account.fields.CountryCode__c.label}"/>
+                    <apex:inputField value="{!Acc.CountryCode__c}" required="false"/>
+                </apex:pageBlockSectionItem>
+
+                <apex:pageBlockSectionItem >
+                    <apex:outputlabel value="{!$ObjectType.Account.fields.CityCode__c.label}"/>
+                    <apex:inputField value="{!Acc.CityCode__c}" required="false"/>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:outputlabel value="{!$ObjectType.Account.fields.PhoneNumber__c.label}"/>
+                    <apex:inputField value="{!Acc.PhoneNumber__c}" required="false"/>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection>  
+
+            <apex:outputPanel id="loader" layout="block" style="text-align:center;">
+                <apex:actionStatus id="status" startText="Выполняется поиск. Подождите..."/>
+            </apex:outputPanel>
+
+            <apex:pageBlockSection columns="1" id="results">
+                <apex:pageBlock title="Найденные совпадения" rendered="{!isFound}">
+                    <apex:pageBlockTable value="{!matches}" var="m">
+                        <apex:column headervalue="{!$ObjectType.Account.fields.Name.label}">
+                            <apex:outputlink value="/{!m.Id}">{!m.Name}</apex:outputlink>
+                        </apex:column>
+                        <apex:column value="{!m.PersonEmail}"/>
+                    </apex:pageBlockTable>
+                </apex:pageBlock>
+            </apex:pageblockSection>
+        </apex:pageBlock>
+
+    </apex:form>
+
+	<script type="text/javascript">
+		function showDialog(stitle, sbody) {
+			var box = new SimpleDialog("hersh"+Math.random(), false);
+				parent.box = box;
+				box.setTitle(stitle);
+				box.createDialog();
+				box.setWidth(350);
+				box.setContentInnerHTML("<p align='center'>" + sbody + "</p><p align='center'>Подождите</p>");
+				box.setupDefaultButtons();
+				box.show();
+		}
+
+		function hideDialog(){
+			parent.window.box.hide(); 
+		}
+	</script>
+
+</apex:page>

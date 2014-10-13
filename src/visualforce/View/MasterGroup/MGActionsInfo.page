@@ -1,0 +1,419 @@
+<apex:page controller="MGActionsInfoController">
+
+	<style type="text/css">
+		.TableFilter {
+			margin: 20px 0px 20px 200px;
+		}
+		.TableFilter td {
+			vertical-align: middle;
+		}
+		.CellLabel {
+			font-weight: bold;
+			text-align: right;
+		}
+		.CellInput {
+			padding: 0 30px 0 10px;
+		}
+		input.input  {
+			width: 356px;
+			height: 15px;
+			margin-top: 2px;
+			margin-bottom: 2px;
+		}
+		select.input  {
+			width: 360px;
+		}
+		.CellNumber {
+			width: 200px;
+		}
+		.CellInfo {
+			width: 32px;
+			text-align: center;
+		}
+		.Icon {
+			height: 16px;
+			width: 16px;
+		}
+		.InfoIcon {
+			cursor: pointer;
+			height: 16px;
+			width: 16px;
+		}
+		.HiddenHeader {
+			display: none;
+		}
+		.HeaderOnly {
+			display: none;
+		}
+		.Unsorted {
+			cursor: pointer;
+		}
+		th.Unsorted:hover {
+			background-color: #C0C0C0 !important;
+		}
+		.TheTable2 {
+			display: none;
+		}
+		.HiddenText {
+			color: white;
+			float: left;
+		}
+	</style>
+
+
+
+	<apex:sectionHeader title="Мастер Группа" subtitle="Статистика по кураторству" id="TheSectionHeader"/>
+
+	<apex:pageMessages id="Messages"/>
+
+
+	<apex:form id="TheForm">
+	<apex:outputText value="[{!mCPULimit1}]" styleClass="HiddenText" />
+	<apex:outputText value="[{!mCPULimit2}]" styleClass="HiddenText" />
+		<apex:pageBlock id="TheBlock" title="Все мероприятия в потоке">
+			<table class="TableFilter">
+				<tr>
+					<td class="CellLabel">
+						<apex:outputLabel value="Поток:" />
+					</td>
+					<td class="CellInput">
+						<apex:selectList value="{!mGroup}" size="1" multiselect="false" styleClass="input">
+							<apex:selectOptions value="{!mGroups}" />
+							<apex:actionSupport event="onchange" action="{!processActions}" oncomplete="processFunctions()" status="refreshActions1" reRender="TheForm"/>
+						</apex:selectList>
+					</td>
+					<td>
+						<apex:actionStatus id="refreshActions1">
+							<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+						</apex:actionStatus>
+					</td>
+				</tr>
+				<tr>
+					<td class="CellLabel">
+						<apex:outputLabel value="Онлайн:" />
+					</td>
+					<td class="CellInput">
+						<apex:inputCheckbox value="{!isOnlineActions}">
+							<apex:actionSupport event="onchange" action="{!processActions}" oncomplete="processFunctions()" status="refreshActions2" reRender="TheForm"/>
+						</apex:inputCheckbox>
+					</td>
+					<td>
+						<apex:actionStatus id="refreshActions2">
+							<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+						</apex:actionStatus>
+					</td>
+				</tr>
+			</table>
+			<apex:outputText value="No records to show" rendered="{!mRowsCount = 0}" />
+			<apex:pageBlockTable id="TheTable" value="{!mRowElements}" var="row" rendered="{!mRowsCount > 0}" >
+				<apex:column styleClass="CellName">
+					<apex:facet name="header">Город (Группа)</apex:facet>
+					<apex:outputLink value="/{!row.actionId}" target="_parent"><apex:outputText value="{!row.city}" /></apex:outputLink>
+				</apex:column>
+				<apex:column styleClass="CellNumber">
+					<apex:facet name="header">Заявок получено</apex:facet>
+					<apex:outputText value="{!row.registred}" />
+				</apex:column>
+				<apex:column styleClass="CellNumber">
+					<apex:facet name="header">Человек оплатили</apex:facet>
+					<apex:outputText value="{!row.bought}" />
+				</apex:column>
+				<apex:column styleClass="CellNumber">
+					<apex:facet name="header">Человек пришло</apex:facet>
+					<apex:outputText value="{!row.attended}" />
+				</apex:column>
+				<apex:column styleClass="CellNumber">
+					<apex:facet name="header">Дельта</apex:facet>
+					<apex:outputText value="{!row.rate}" />
+				</apex:column>
+				<apex:column styleClass="CellInfo">
+					<apex:facet name="header">Info</apex:facet>
+					<img src="{!$Resource.IconInfo}" class="InfoIcon">
+						<apex:actionSupport event="onclick" action="{!loadInfo}" onsubmit="triggerLoadIcon(this)" oncomplete="correctTable()" status="loadInfo" reRender="TheForm">
+							<apex:param name="actionId" assignTo="{!mActionId}" value="{!row.actionId}" />
+						</apex:actionSupport>
+						<apex:actionStatus id="loadInfo">
+							<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+						</apex:actionStatus>
+					</img>
+				</apex:column>
+			</apex:pageBlockTable>
+			<apex:pageBlockTable id="TheTotalRow" value="{!mTotalRow}" var="total" rendered="{!mRowsCount > 0}" headerClass="HiddenHeader">
+				<apex:column >
+					<apex:outputText value="Итого" />
+				</apex:column>
+				<apex:column styleClass="CellNumber">
+					<apex:outputText value="{!total.registred}" />
+				</apex:column>
+				<apex:column styleClass="CellNumber">
+					<apex:outputText value="{!total.bought}" />
+				</apex:column>
+				<apex:column styleClass="CellNumber">
+					<apex:outputText value="{!total.attended}" />
+				</apex:column>
+				<apex:column styleClass="CellNumber"></apex:column>
+				<apex:column styleClass="CellInfo"></apex:column>
+			</apex:pageBlockTable>
+		</apex:pageBlock>
+
+		<apex:pageBlock id="TheBlock2" title="Статистика по {!mActionName}" rendered="{!mActionId != null}">
+			<apex:outputText value="No records to show" rendered="{!mInfoRowsCount = 0}" />
+			<apex:pageBlockTable id="TableInfo" value="{!mInfoRows}" var="row" rendered="{!mInfoRowsCount > 0}">
+				<apex:repeat var="header" value="{!mHeaders}">
+					<apex:column headerValue="{!header}" styleClass="HeaderOnly"/>
+				</apex:repeat>
+				<apex:repeat var="cell" value="{!row.cells}">
+					<apex:column headerValue="">
+						<apex:outputPanel rendered="{!cell.isTextCell == false && cell.isTrue == true}">
+							<img src="{!$Resource.Yes_Icon}" class="Icon" type="yes" />
+						</apex:outputPanel>
+						<apex:outputPanel rendered="{!cell.isTextCell == false && cell.isTrue == false}">
+							<img src="{!$Resource.No_Icon}" class="Icon" type="no" />
+						</apex:outputPanel>
+						<apex:outputPanel rendered="{!cell.isTextCell == true}" >
+							<apex:outputLink value="/{!cell.linkValue}" target="_parent"><apex:outputText value="{!cell.textValue}" /></apex:outputLink>
+						</apex:outputPanel>
+					</apex:column>
+				</apex:repeat>
+			</apex:pageBlockTable>
+			<apex:pageBlockTable id="TheTotalRow" value="{!mVFPageList}" var="1elementlist" rendered="{!mInfoRowsCount > 0}" headerClass="HiddenHeader">
+				<apex:repeat var="cell" value="{!mTotalInfoRow}">
+					<apex:column headerValue="">
+						<apex:outputText value="{!cell}" />
+					</apex:column>
+				</apex:repeat>
+			</apex:pageBlockTable>
+		</apex:pageBlock>
+	</apex:form>
+
+
+
+	<script type="text/javascript">
+
+		var previousOnload = window.onload;
+		var sortedByName = false;
+		var sortedByRegistred = false;
+		var sortedByBought = false;
+		var sortedByAttended = false;
+		var sortedByRate = false;
+		var lastType;
+
+		window.onload = function() {
+			if (previousOnload) { 
+				previousOnload();
+			}
+			onloadWork();
+		}
+
+		function processFunctions() {
+			onloadWork();
+			refreshSortStatuses();
+		}
+
+		function onloadWork() {
+			var table = document.getElementById('{!$Component.TheForm.TheBlock.TheTable}');
+			var tableHead = table.getElementsByTagName('thead');
+			var rows = tableHead[0].getElementsByTagName('tr');
+			var headers = rows[0].getElementsByTagName('th');
+			var headersNumber = headers.length - 1;
+			for (var i = 0; i < headersNumber; i++) {
+				headers[i].className = 'Unsorted';
+				headers[i].setAttribute('onclick', 'sortTableByClick(this)');
+			}
+		}
+
+		function sortTableByClick(element) {
+			var text = element.getElementsByTagName('div')[0].innerHTML;
+			var type;
+			if (text == 'Город (Группа)') {
+				type = 0;
+			} else if (text == 'Заявок получено') {
+				type = 1;
+			} else if (text == 'Человек оплатили') {
+				type = 2;
+			} else if (text == 'Человек пришло') {
+				type = 3;
+			} else if (text == 'Дельта') {
+				type = 4;
+			}
+			sortTable(type);
+			lastType = type;
+		}
+
+		function sortTable(type) {
+			var tableTotal = document.getElementById('{!$Component.TheForm.TheBlock.TheTable}');
+			var tableTotalBody = tableTotal.getElementsByTagName('tbody');
+			var totalRows = tableTotalBody[0].getElementsByTagName('tr');
+			var rowsNumber = totalRows.length;
+			var columnArray = [];
+			for (var i = 0; i < rowsNumber; i++) {
+				var cells = totalRows[i].getElementsByTagName('td');
+				var value;
+				if (type == 0) {
+					var a = cells[type].getElementsByTagName('a');
+					value = a[0].innerHTML;
+				} else {
+					value = cells[type].innerHTML;
+				}
+				columnArray.push(value);
+			}
+			if (type == 0) {
+				columnArray.sort();
+				columnArray.reverse();
+			} else if (type == 4) {
+				columnArray.sort(sortByRate);
+			} else {
+				columnArray.sort(sortByNumber);
+			}
+			if (getSortingDirection(type)) {
+				columnArray.reverse();
+			}
+			var columnSet = [];
+			columnSet.push(columnArray[0]);
+			for (var i = 0; i < columnArray.length - 1; i++) {
+				if (columnArray[i] != columnArray[i + 1]) {
+					columnSet.push(columnArray[i + 1]);
+				}
+			}
+			var childInOrder = [];
+			for (var i = 0; i < columnSet.length; i++) {
+				for (var n = 0; n < rowsNumber; n++) {
+					var cells = totalRows[n].getElementsByTagName('td');
+					if (type == 0) {
+						var a = cells[type].getElementsByTagName('a');
+						if (columnSet[i] == a[0].innerHTML) {
+							childInOrder.push(totalRows[n]);
+						}
+					} else {
+						if (columnSet[i] == cells[type].innerHTML) {
+							childInOrder.push(totalRows[n]);
+						}
+					}
+				}
+			}
+			tableTotalBody[0].innerHTML = '';
+			for (var i = 0; i < childInOrder.length; i++) {
+				var row = childInOrder[i];
+				if (isOdd(i)) {
+					if (i == childInOrder.length - 1) {
+						row.className = 'dataRow odd last';
+					} else {
+						row.className = 'dataRow odd';
+					}
+				} else {
+					if (i == 0) {
+						if (childInOrder.length == 1) {
+							row.className = 'dataRow even first last';
+						} else {
+							row.className = 'dataRow even first';
+						}
+					} else {
+						row.className = 'dataRow even';
+					}
+				}
+				tableTotalBody[0].appendChild(row);
+			}
+		}
+
+		function sortByNumber(a, b) {
+			return a - b;
+		}
+
+		function sortByRate(a, b) {
+			var c;
+			var d;
+			if (a.indexOf('(') > 0) {
+				c = a.substring(0, (a.indexOf('('))).trim();
+			} else {
+				c = a;
+			}
+			if (b.indexOf('(') > 0) {
+				d = b.substring(0, (b.indexOf('('))).trim();
+			} else {
+				d = b;
+			}
+			return parseInt(c) - parseInt(d);
+		}
+
+		function isOdd(a) {
+			if (a % 2 == 1) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		function getSortingDirection(type) {
+			if (type == 0) {
+				sortedByName = !sortedByName;
+				return sortedByName;
+			}
+			if (type == 1) {
+				sortedByRegistred = !sortedByRegistred;
+				return sortedByRegistred;
+			}
+			if (type == 2) {
+				sortedByBought = !sortedByBought;
+				return sortedByBought;
+			}
+			if (type == 3) {
+				sortedByAttended = !sortedByAttended;
+				return sortedByAttended;
+			}
+			if (type == 4) {
+				sortedByRate = !sortedByRate;
+				return sortedByRate;
+			}
+		}
+
+		function correctTable() {
+			var tableInfo = document.getElementById('{!$Component.TheForm.TheBlock2.TableInfo}');
+			if (tableInfo) {
+				var tableInfoHead = tableInfo.getElementsByTagName('thead');
+				var infoHeaders = tableInfoHead[0].getElementsByTagName('tr');
+				var infoCells = infoHeaders[0].getElementsByTagName('th');
+				var tableTotal = document.getElementById('{!$Component.TheForm.TheBlock2.TheTotalRow}');
+				var tableTotalBody = tableTotal.getElementsByTagName('tbody');
+				var totalRows = tableTotalBody[0].getElementsByTagName('tr');
+				var totalCells = totalRows[0].getElementsByTagName('td');
+				var cellsNumber = totalCells.length;
+				var infoInfoBody = tableInfo.getElementsByTagName('tbody');
+				var infoRows = infoInfoBody[0].getElementsByTagName('tr');
+				for (var i = 0; i < infoRows.length; i++) {
+					var icons = infoRows[i].getElementsByTagName('img');
+					var isBought = icons[0].getAttribute('type');
+					if (isBought == 'no') {
+						for (var n = 1; n < icons.length; n++) {
+							icons[n].style.display = 'none';
+						}
+					}
+				}
+				for (var i = 0; i < cellsNumber; i++) {
+					var newWidth = infoCells[i].offsetWidth - 9;
+					if (infoCells[i].innerHTML == 'Итого') {
+						newWidth = newWidth - 4;
+					}
+					totalCells[i].style.width = newWidth + 'px';
+				}
+			}
+			onloadWork();
+			sortTable(lastType);
+			sortTable(lastType);
+		}
+
+		function triggerLoadIcon(element) {
+			var icon = element.getElementsByTagName('img');
+			icon[0].style.display = 'none';
+		}
+
+		function refreshSortStatuses() {
+			sortedByName = false;
+			sortedByRegistred = false;
+			sortedByBought = false;
+			sortedByAttended = false;
+			sortedByRate = false;
+		}
+
+	</script>
+
+</apex:page>

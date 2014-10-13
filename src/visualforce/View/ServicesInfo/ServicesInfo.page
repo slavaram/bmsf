@@ -1,0 +1,186 @@
+<apex:page controller="ServicesInfoController">
+
+	<style type="text/css">
+		input.input  {
+			width: 156px ;
+			height: 15px ;
+			margin-top: 2px ;
+			margin-bottom: 2px ;
+		}
+		select.input  {
+			width: 160px ;
+		}
+		.LabelCell {
+			text-align: right;
+			font-weight: bold;
+		}
+		.FilterForSearch {
+			margin: 10px 0px 10px 50px;
+		}
+		.TheDatesTable {
+			margin: 5px 0px 10px 0px;
+		}
+		.FilterForSearch td,
+		.TheDatesTable td {
+			padding-left: 20px;
+			vertical-align: middle;
+		}
+		.activeTab {
+			background-color: #236FBD; 
+			color:white; 
+			background-image: none;
+		}
+		.inactiveTab {
+			background-color: #D3D3D3; 
+			color: black; 
+			background-image: none;
+		}
+		.TheFilterBlock {
+			margin-left: 150px;
+		}
+		.TheFilterTable {
+			margin: 5px 0px 10px 0px;
+		}
+		.TheFilterTable td {
+			padding-left: 20px;
+			vertical-align: middle;
+		}
+		.HeaderOnly,
+		.HiddenHeader {
+			display: none;
+		}
+	</style>
+
+
+	<apex:sectionHeader title="Группа продуктов Сервисы" subtitle="Статистика продаж в разрезе образовательных мероприятий" id="TheSectionHeader"/>
+
+	<apex:pageMessages id="Messages"/>
+
+	<apex:form id="TheForm">
+
+		<table class="FilterForSearch">
+			<tr>
+				<td class="LabelCell">C:</td>
+				<td>
+					<apex:inputField value="{!fromDate.Date__c}" styleClass="input" showDatePicker="true" />
+				</td>
+			</tr>
+			<tr>
+				<td class="LabelCell">По:</td>
+				<td>
+					<apex:inputField value="{!byDate.Date__c}" styleClass="input" showDatePicker="true" />
+				</td>
+			</tr>
+		</table>
+
+		<apex:tabPanel switchType="client" id="TheTabs" selectedTab="TheFirstTab" tabClass="activeTab" inactiveTabClass="inactiveTab">
+
+			<apex:tab id="TheFirstTab" label="По образовательным продуктам">
+				<apex:pageBlock id="TheFirstBlock">
+					<apex:pageBlockButtons location="top">
+						<apex:commandButton action="{!processEducationTable}" value="Обновить таблицу" reRender="TheFirstBlock" onclick="BlurButton()" oncomplete="UnblurButton()"/>
+					</apex:pageBlockButtons>
+					<div class="TheFilterBlock">
+					<table class="TheFilterTable">
+						<tr>
+							<td class="LabelCell">Группа продуктов:</td>
+							<td>
+								<apex:selectList value="{!groupId}" size="1" multiselect="false" styleClass="input">
+									<apex:selectOptions value="{!groups}"/>
+								</apex:selectList>
+							</td>
+						</tr>
+					</table>
+					</div>
+
+					<apex:pageBlockTable id="TheFirstTable" var="row" value="{!rows}" rendered="{!tableMessage = null}">
+						<apex:repeat var="header" value="{!headers}">
+								<apex:column headerValue="{!header}" styleClass="HeaderOnly"/>
+						</apex:repeat>
+						<apex:repeat var="cell" value="{!row.cells}">
+							<apex:column rendered="{!cell.isRowSpanedOwer = false}" rowspan="{!cell.rowSpanedOwer}">
+								<apex:outputLink value="/{!cell.link}" target="_parent" rendered="{!cell.isObject = true}"><apex:outputText value="{!cell.name}" /></apex:outputLink>
+								<apex:outputText value="{!cell.value}" rendered="{!cell.isObject = false}" />
+							</apex:column>
+						</apex:repeat>
+					</apex:pageBlockTable>
+					<apex:pageBlockTable id="TheFirstTotalRow" value="{!totalRow}" var="total" rendered="{!tableMessage = null}" headerClass="HiddenHeader">
+						<apex:column>
+							<apex:outputText value="Итого" />
+						</apex:column>
+						<apex:column>{!total}</apex:column>
+					</apex:pageBlockTable>
+					<apex:outputText value="{!tableMessage}" rendered="{!tableMessage != null}" />
+				</apex:pageBlock>
+			</apex:tab>
+
+			<apex:tab id="TheSecondTab" label="По сервисным продуктам">
+				<apex:pageBlock id="TheSecondBlock">
+					<apex:pageBlockButtons location="top">
+						<apex:commandButton action="{!processServiceTable}" value="Обновить таблицу" reRender="TheSecondBlock" onclick="BlurButton()" oncomplete="UnblurButton()"/>
+					</apex:pageBlockButtons>
+					<div class="TheFilterBlock">
+					<table class="TheFilterTable">
+						<tr>
+							<td class="LabelCell">Группа продуктов:</td>
+							<td>
+								<apex:selectList value="{!serviceGroupId}" size="1" multiselect="false" styleClass="input">
+									<apex:selectOptions value="{!serviceGroups}"/>
+									<apex:actionSupport event="onchange" action="{!processSubgroups}" reRender="TheSubgroupsList" status="processSubgroups" />
+								</apex:selectList>
+							</td>
+							<td>
+								<apex:actionStatus id="processSubgroups">
+									<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+								</apex:actionStatus>
+							</td>
+						</tr>
+						<tr>
+							<td class="LabelCell">Подгруппа продуктов:</td>
+							<td>
+								<apex:selectList id="TheSubgroupsList" value="{!serviceSubgroupId}" size="1" multiselect="false" styleClass="input">
+									<apex:selectOptions value="{!serviceSubgroups}"/>
+								</apex:selectList>
+							</td>
+						</tr>
+					</table>
+					</div>
+
+					<apex:pageBlockTable id="TheSecondTable" var="row" value="{!serviceRows}" rendered="{!serviceTableMessage = null }">
+						<apex:repeat var="header" value="{!serviceHeaders}">
+								<apex:column headerValue="{!header}" styleClass="HeaderOnly"/>
+						</apex:repeat>
+						<apex:repeat var="cell" value="{!row.cells}">
+							<apex:column rendered="{!cell.isRowSpanedOwer = false}" rowspan="{!cell.rowSpanedOwer}">
+								<apex:outputLink value="/{!cell.link}" target="_parent" rendered="{!cell.isObject = true}"><apex:outputText value="{!cell.name}" /></apex:outputLink>
+								<apex:outputText value="{!cell.value}" rendered="{!cell.isObject = false}" />
+							</apex:column>
+						</apex:repeat>
+					</apex:pageBlockTable>
+					<apex:pageBlockTable id="TheFirstTotalRow" value="{!serviceTotalRow}" var="total" rendered="{!serviceTableMessage = null}" headerClass="HiddenHeader">
+						<apex:column>
+							<apex:outputText value="Итого" />
+						</apex:column>
+						<apex:column>{!total}</apex:column>
+					</apex:pageBlockTable>
+					<apex:outputText value="{!serviceTableMessage}" rendered="{!serviceTableMessage != null}" />
+				</apex:pageBlock>
+			</apex:tab>
+
+		</apex:tabPanel>
+
+	</apex:form>
+
+
+	<script type="text/javascript">
+		function BlurButton() {
+		
+		}
+		
+		function UnblurButton() {
+		
+		}
+	</script>
+
+
+</apex:page>

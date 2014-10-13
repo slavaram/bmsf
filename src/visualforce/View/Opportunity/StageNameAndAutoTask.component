@@ -1,0 +1,49 @@
+<apex:component id="StageNameAndAutoTask" access="global" allowDML="true" controller="StageNameController">
+
+    <apex:attribute type="Opportunity" name="ValueOpportunity" description="" access="global" assignTo="{!opp}"/>
+    <apex:attribute type="AutoTask" name="AutoTask" description=""/>
+
+    <div style="position: relative; clear:both">
+	    <div style="float:left">
+
+			<apex:inputField value="{!opp.StageName}" onchange="rerenderReasonRefusal(this.value,this.value);" rendered="{!isShowAllStageName}"/>
+		    
+		    <apex:outputPanel rendered="{!not(isShowAllStageName)}">
+		        <apex:inputField value="{!opp.StageName}" styleClass="HiddenStageName"  style="display:none;"/>       
+		        <apex:outputField value="{!opp.StageName}" rendered="{!CountOfStatusOptions == 0}"/>
+		        <apex:selectList size="1" value="{!opp.StageName}"  
+		            onchange="
+		                document.getElementsByClassName('HiddenStageName')[0].value = this.value;
+		                rerenderReasonRefusal(this.value,this.value);" 
+		            id="FieldStageName" 
+		            style="width:200px;" 
+		            rendered="{!CountOfStatusOptions > 0}">
+		                <apex:selectOptions value="{!StatusOptions}"/>
+		        </apex:selectList>   
+		    </apex:outputPanel>
+	    </div>
+	    <div style="float:left">
+		    <apex:actionStatus id="StatusReasonRefusal">
+		        <apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+		    </apex:actionStatus>
+	    </div>
+    </div>
+
+	<div style="position: relative; clear:both">  
+		<apex:outputPanel id="AutoTask" styleClass="tip">
+							
+			<apex:pageMessage severity="info" strength="2" 
+				summary="При изменении статуса автоматически будет создана задача {!AutoTask.thisTask.Subject}" 
+				rendered="{!AutoTask.isFindAutoTask}">
+				<div class="description">
+					Установите крайний срок для новой задачи, либо снимите флажок, чтобы новая задача не создалась.<br/>
+					<apex:inputCheckBox value="{!AutoTask.isCreateNextTask}" onclick="isNextTask(this.checked)"/>
+					<apex:inputField value="{!AutoTask.thisTask.ReminderDateTime}" rendered="{!AutoTask.isCreateNextTask}"/>
+					<apex:actionStatus id="StatusAutoTask">
+						<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+					</apex:actionStatus>
+				</div>
+			</apex:pageMessage> 
+		</apex:outputPanel>
+	</div>
+</apex:component>

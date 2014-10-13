@@ -1,0 +1,297 @@
+<apex:page controller="MGCardsInfoController">
+
+	<style type="text/css">
+		#GroupsBlock {
+			margin-left: 150px;
+		}
+		#TheGroupsTable {
+			margin: 5px 0px 10px 0px;
+		}
+		#TheGroupsTable td {
+			padding-left: 20px;
+			vertical-align: middle;
+		}
+		td.LabelCell {
+			text-align: right;
+			font-weight: bold;
+		}
+		.Image {
+			height: 24px;
+			width: 24px;
+			margin-right: 5px;
+		}
+		.ClientCell {
+			width: 250px;
+		}
+		.EmailCell {
+			width: 200px;
+		}
+		.PhoneCell {
+			width: 120px;
+		}
+		.TypeCell {
+			width: 120px;
+		}
+		.DatesCell {
+			width: 120px;
+		}
+		.Label {
+			height: 16px;
+			width: 16px;
+			margin-left: 5px;
+		}
+		.Unsorted {
+			cursor: pointer;
+		}
+		th.Unsorted:hover {
+			background-color: #C0C0C0 !important;
+		}
+	</style>
+
+	<apex:sectionHeader title="Мастер Группа" subtitle="Статистика по картам" id="TheSectionHeader"/>
+
+	<apex:pageMessages id="Messages"/>
+
+	<apex:form id="TheForm">
+		<apex:pageBlock id="TheBlock">
+			<div id="GroupsBlock">
+			<table id="TheGroupsTable">
+				<tr>
+					<td class="LabelCell">Всего клиентов:</td>
+					<td>
+						<apex:outputText value="{!mTotalClients}" />
+					</td>
+				</tr>
+				<tr>
+					<td class="LabelCell">Всего карт:</td>
+					<td>
+						<apex:outputText value="{!mTotalCards}" />
+					</td>
+				</tr>
+			</table>
+			</div>
+			<apex:pageBlockTable value="{!mRows}" var="row" title="MgCards" id="TheTable">
+				<apex:column headerValue="Клиент" headerClass="ClientCell">
+					<apex:outputLink value="/{!row.clientPhotoUrl}" target="_parent"><img src="{!row.clientPhotoUrl}" class="Image" /></apex:outputLink>
+					<apex:outputLink value="/{!row.clientId}" target="_parent"><apex:outputText value="{!row.clientName}" /></apex:outputLink>
+				</apex:column>
+				<apex:column headerValue="Почтовый адрес" headerClass="EmailCell">
+					<apex:outputText value="{!row.clientEmail}" />
+				</apex:column>
+				<apex:column headerValue="Номер телефона" headerClass="PhoneCell">
+					<apex:outputText value="{!row.clientPhone}" />
+				</apex:column>
+				<apex:column headerValue="Последнее мероприятие перед покупкой карты">
+					<apex:outputLink value="/{!row.actionId}" target="_parent"><apex:outputText value="{!row.actionName}" /></apex:outputLink>
+				</apex:column>
+				<apex:column headerValue="Тип карты" headerClass="TypeCell">
+					<apex:repeat value="{!row.cards}" var="card">
+						<apex:outputLink value="/{!card.Id}" target="_parent">
+							<apex:outputText value="{!card.CardType__c}" />
+							<apex:outputPanel rendered="{!card.CardType__c = 'Золотая'}">
+								<img src="{!$Resource.Yellow_Label}" class="Label" />
+							</apex:outputPanel>
+							<apex:outputPanel rendered="{!card.CardType__c = 'Зеленая'}">
+								<img src="{!$Resource.Green_Label}" class="Label" />
+							</apex:outputPanel>
+							<apex:outputPanel rendered="{!card.CardType__c = 'Черная'}">
+								<img src="{!$Resource.Gray_Label}" class="Label" />
+							</apex:outputPanel>
+						</apex:outputLink><br />
+					</apex:repeat>
+				</apex:column>
+				<apex:column headerValue="Дата покупки" headerClass="DatesCell">
+					<apex:repeat value="{!row.cards}" var="card">
+						<div>
+							<apex:outputText value="{0, date, dd'.'MM'.'yyyy}">
+								<apex:param value="{!card.StartDate__c}" />
+							</apex:outputText>
+						</div>
+					</apex:repeat>
+				</apex:column>
+			</apex:pageBlockTable>
+		</apex:pageBlock>
+	</apex:form>
+
+
+	<script type="text/javascript">
+
+		var previousOnload = window.onload;
+		var sortedByClient = true;
+		var sortedByEmail = true;
+		var sortedByPhone = true;
+		var sortedByAction = true;
+		var sortedByCard = true;
+		var sortedByDate = true;
+
+		window.onload = function() {
+			if (previousOnload) { 
+				previousOnload();
+			}
+			onloadWork();
+		}
+
+		function onloadWork() {
+			var table = document.getElementById('{!$Component.TheForm.TheBlock.TheTable}');
+			var tableHead = table.getElementsByTagName('thead');
+			var rows = tableHead[0].getElementsByTagName('tr');
+			var headers = rows[0].getElementsByTagName('th');
+			var headersNumber = headers.length;
+			for (var i = 0; i < headersNumber; i++) {
+				headers[i].className = 'Unsorted';
+				headers[i].setAttribute('onclick', 'sortTableByClick(this)');
+			}
+		}
+
+		function sortTableByClick(element) {
+			var text = element.getElementsByTagName('div')[0].innerHTML;
+			var type;
+			if (text == 'Клиент') {
+				type = 0;
+			} else if (text == 'Почтовый адрес') {
+				type = 1;
+			} else if (text == 'Номер телефона') {
+				type = 2;
+			} else if (text == 'Последнее мероприятие перед покупкой карты') {
+				type = 3;
+			} else if (text == 'Тип карты') {
+				type = 4;
+			} else if (text == 'Дата покупки') {
+				type = 5;
+			}
+			sortTable(type);
+		}
+
+		function sortTable(type) {
+			var tableTotal = document.getElementById('{!$Component.TheForm.TheBlock.TheTable}');
+			var tableBody = tableTotal.getElementsByTagName('tbody');
+			var totalRows = tableBody[0].getElementsByTagName('tr');
+			var rowsNumber = totalRows.length;
+			var columnArray = [];
+			for (var i = 0; i < rowsNumber; i++) {
+				var cells = totalRows[i].getElementsByTagName('td');
+				var value;
+				if (type == 0) {
+					var a = cells[type].getElementsByTagName('a');
+					value = a[1].innerHTML;
+				} else if (type == 3 || type == 4) {
+					var a = cells[type].getElementsByTagName('a');
+					value = a[a.length - 1].innerHTML;
+				} else if (type == 5) {
+					var div = cells[type].getElementsByTagName('div');
+					value = div[div.length - 1].innerHTML;
+				} else {
+					value = cells[type].innerHTML;
+				}
+				columnArray.push(value);
+			}
+
+			if (type == 5) {
+				columnArray.sort(sortByDate);
+			} else {
+				columnArray.sort();
+			}
+
+			if (getSortingDirection(type)) {
+				columnArray.reverse();
+			}
+
+			var columnSet = [];
+			columnSet.push(columnArray[0]);
+			for (var i = 0; i < columnArray.length - 1; i++) {
+				if (columnArray[i] != columnArray[i + 1]) {
+					columnSet.push(columnArray[i + 1]);
+				}
+			}
+			var childInOrder = [];
+			for (var i = 0; i < columnSet.length; i++) {
+				for (var n = 0; n < rowsNumber; n++) {
+					var cells = totalRows[n].getElementsByTagName('td');
+					if (type == 0) {
+						var a = cells[type].getElementsByTagName('a');
+						if (columnSet[i] == a[1].innerHTML) {
+							childInOrder.push(totalRows[n]);
+						}
+					} else if (type == 3 || type == 4) {
+						var a = cells[type].getElementsByTagName('a');
+						if (columnSet[i] == a[a.length - 1].innerHTML) {
+							childInOrder.push(totalRows[n]);
+						}
+					} else if (type == 5) {
+						var div = cells[type].getElementsByTagName('div');
+						if (columnSet[i] == div[div.length - 1].innerHTML) {
+							childInOrder.push(totalRows[n]);
+						}
+					} else {
+						if (columnSet[i] == cells[type].innerHTML) {
+							childInOrder.push(totalRows[n]);
+						}
+					}
+				}
+			}
+
+			tableBody[0].innerHTML = '';
+			for (var i = 0; i < childInOrder.length; i++) {
+				var row = childInOrder[i];
+				if (isOdd(i)) {
+					if (i == childInOrder.length - 1) {
+						row.className = 'dataRow odd last';
+					} else {
+						row.className = 'dataRow odd';
+					}
+				} else {
+					if (i == 0) {
+						if (childInOrder.length == 1) {
+							row.className = 'dataRow even first last';
+						} else {
+							row.className = 'dataRow even first';
+						}
+					} else {
+						row.className = 'dataRow even';
+					}
+				}
+				tableBody[0].appendChild(row);
+			}
+		}
+
+		function sortByDate(a, b) {
+			var partsA = a.trim().split('.');
+			var partsB = b.trim().split('.');
+			var intA = parseInt(partsA[2] + partsA[1] + partsA[0]);
+			var intB = parseInt(partsB[2] + partsB[1] + partsB[0]);
+			return  intA - intB;
+		}
+
+		function isOdd(a) {
+			if (a % 2 == 1) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		function getSortingDirection(type) {
+			if (type == 0) {
+				sortedByClient = !sortedByClient;
+				return sortedByClient;
+			} else if (type == 1) {
+				sortedByEmail = !sortedByEmail;
+				return sortedByEmail;
+			} else if (type == 2) {
+				sortedByPhone = !sortedByPhone;
+				return sortedByPhone;
+			} else if (type == 3) {
+				sortedByAction = !sortedByAction;
+				return sortedByAction;
+			} else if (type == 4) {
+				sortedByCard = !sortedByCard;
+				return sortedByCard;
+			} else {
+				sortedByDate = !sortedByDate;
+				return sortedByDate;
+			}
+		}
+
+	</script>
+
+</apex:page>

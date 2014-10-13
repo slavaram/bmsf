@@ -1,0 +1,241 @@
+<apex:page standardController="Account" extensions="DayMemberController">
+	
+	<style>
+		.space {
+			padding: 0px 5px 5px 5px;
+		}
+		.messageTable td {
+			padding: 0px !important;
+			border-bottom: 0px !important;
+		}
+		textarea {
+			height: 60px;
+			width: 100%;
+		}
+		.warningM4 span {
+			display: block;
+		}
+		.warningM4 table {
+			width: 98%;
+		}
+		tr.dataRow.highlight .warningM4 td {
+			background-color: #ffc !important;
+		}
+		tr.dataRow.highlight.DayMemberDeatil td,
+		tr.dataRow.highlight .DayMemberDeatil th {
+			background-color: #f8f8f8 !important;
+		}
+		.warningM4 tr td:first-child {
+			width: 20px !important;
+		}
+		.errorM3 {
+			margin: 5px !important;
+		}
+		.DayMemberDeatil label {
+			font-weight: bold !important;
+		}
+		.DayMemberDeatil th {
+			vertical-align: top !important;
+		}
+		.Icon {
+			width: 16px;
+			height: 16px;
+		}
+	</style>
+
+	<apex:variable value="{!$UserRole.DeveloperName != 'Registrator'}" var="ViewDetail" />
+
+	<apex:SectionHeader title="Участник мероприятия" subtitle="{!Client.Name}" />
+
+	<apex:form>
+		<apex:pageBlock title="Клиент" mode="maindetail">
+			<apex:pageBlockSection>
+				<apex:pageBlockSectionItem >
+					<apex:outputLabel value="Клиент" />
+					<apex:outputLink value="{!UrlFor($Action.Account.View, Account.Id )}"><apex:outputField value="{!Account.Name}"/></apex:outputLink>
+				</apex:pageBlockSectionItem>
+				<apex:outputField value="{!Account.Phone}"/>
+				<apex:outputField value="{!Account.PersonEmail}"/>
+				<apex:outputField value="{!Account.Owner__c}"/>
+			</apex:pageBlockSection>
+			<apex:pageBlockSection>
+				<apex:pageBlockSectionItem >
+					<apex:outputLabel value="Количество сданных заданий"/>
+					<apex:outputText value="{!countTask}"/>
+				</apex:pageBlockSectionItem>
+				<apex:inputCheckbox label="Карта выдана" value="{!cardGranted}"/>
+			</apex:pageBlockSection>
+			<apex:pageBlockSection>
+				<apex:pageBlockSectionItem >
+					<apex:outputLabel value="Количество принятых заданий"/>
+					<apex:outputText value="{!countProfit}"/>
+				</apex:pageBlockSectionItem>
+				<apex:outputText label="Тип места" value="{!seatType}"/>
+			</apex:pageBlockSection>
+			<apex:pageBlockSection>
+				<apex:pageBlockSectionItem >
+					<apex:outputLabel value="Количество отклоненных заданий"/>
+					<apex:outputText value="{!countBad}"/>
+				</apex:pageBlockSectionItem>
+				<apex:pageBlockSectionItem rendered="{!isLoan}">
+					<apex:outputLabel value=""/>
+					<apex:outputPanel>
+						<img src="{!$Resource.ImgAttention}" class="Icon" />
+						<apex:outputText value="Кредитная заявка!"/>
+					</apex:outputPanel>
+				</apex:pageBlockSectionItem>
+			</apex:pageBlockSection>
+			<apex:pageBlockSection>
+				<apex:pageBlockSectionItem >
+					<apex:outputLabel value="Количество проверенных заданий"/>
+					<apex:outputText value="{!countChecked}"/>
+				</apex:pageBlockSectionItem>
+			</apex:pageBlockSection>
+		</apex:pageBlock>
+
+		<apex:pageBlock title="Сертификаты" id="promocodes" >
+			<apex:pageBlockButtons location="top">
+				<apex:commandButton action="{!getPromoCode}" reRender="promocodes" value="Найти сертификаты">
+				</apex:commandButton>
+			</apex:pageBlockButtons>
+					
+			<apex:pageBlockSection columns="2">
+				<apex:pageBlockSectionItem >
+					<apex:outputLabel value="Номер первого сертификата"></apex:outputLabel>
+					<apex:inputText value="{!numberPromo}" maxlength="4"></apex:inputText>
+				</apex:pageBlockSectionItem>
+				<apex:pageBlockSectionItem >
+					<apex:outputLabel value="Код сертефикатат №1"></apex:outputLabel>
+					<apex:outputPanel>
+						<apex:outputText value="{!promo1.Code__c}" rendered="{!AND(promo1 != null, !doubPromo1)}"></apex:outputText>
+						<apex:outputText value="Сертификат не найден" rendered="{!promo1 == null}"></apex:outputText>
+						<apex:outputText value="Сертификат выдан другому клиенту" rendered="{!doubPromo1}"></apex:outputText>
+					</apex:outputPanel>
+				</apex:pageBlockSectionItem>
+				<apex:pageBlockSectionItem >
+					<apex:outputLabel value="Номер второго сертификата"></apex:outputLabel>
+					<apex:inputText value="{!numberPromo2}" maxlength="4"></apex:inputText>
+				</apex:pageBlockSectionItem>
+				<apex:pageBlockSectionItem >
+					<apex:outputLabel value="Код сертефикатат №2"></apex:outputLabel>
+					<apex:outputPanel >
+						<apex:outputText value="{!promo2.Code__c}" rendered="{!AND(promo2 != null, !doubPromo2)}"></apex:outputText>
+						<apex:outputText value="Сертификат не найден" rendered="{!promo2 == null}"></apex:outputText>
+						<apex:outputText value="Сертификат выдан другому клиенту" rendered="{!doubPromo2}"></apex:outputText>
+					</apex:outputPanel>
+				</apex:pageBlockSectionItem>
+			</apex:pageBlockSection>
+		</apex:pageBlock>
+	
+		<apex:pageMessage summary="На текущую дату не найдены мероприятия" 	severity="info"	strength="2" rendered="{!dayMembersSize == 0}" />
+	
+		<apex:pageBlock title="Мероприятия" mode="edit" rendered="{!DayMembersSize > 0}" id="OpportunityEvents">
+			<apex:pageBlockButtons location="top">
+				<apex:actionStatus id="StatusSaving">
+					<apex:facet name="start">
+						<apex:commandButton value="Сохранение..." disabled="true"/>
+					</apex:facet>
+					<apex:facet name="stop">
+						<apex:commandButton value="Сохранить" action="{!save}" status="StatusSaving"/>
+					</apex:facet>
+				</apex:actionStatus>
+				<apex:commandButton value="Отмена" action="{!cancel}" immediate="true"/>
+			</apex:pageBlockButtons>
+
+			<apex:pageMessages />
+
+			<apex:repeat value="{!OpportunityEvents}" var="OpportunityEvent">
+				<apex:pageBlockSection title="{!OpportunityEvent.ActionID__r.Name}" columns="2">
+					<apex:outputField value="{!OpportunityEvent.OpportunityId__c}" rendered="{!ViewDetail}"/>
+					<apex:outputField value="{!OpportunityEvent.ActionId__r.CityId__c}"/>
+					<apex:outputField value="{!OpportunityEvent.OpportunityId__r.StageName}"/>
+					<apex:outputField value="{!OpportunityEvent.ActionID__c}" rendered="{!ViewDetail}"/>
+					<apex:outputField value="{!OpportunityEvent.OpportunityId__r.Debt__c}" rendered="{! OpportunityEvent.OpportunityId__r.Debt__c > 0}" />
+				</apex:pageBlockSection>
+				
+				<div class="space">
+					<apex:pageBlockTable var="item" value="{!DayMembers[OpportunityEvent.id]}">
+						<apex:column value="{!item.Day.Name}" width="20%"/>
+						<apex:column value="{!item.Day.Date__c}" width="20%"/>
+						<apex:column headerValue="Город прохождения мероприятия" width="25%">
+							<apex:outputPanel rendered="{!item.ReadOnly}">
+								<apex:outputField value="{!item.Member.City__c}"/>
+							</apex:outputPanel>
+							<apex:outputPanel rendered="{!not(item.ReadOnly)}">
+								<apex:inputField value="{!item.Member.City__c}"/>
+							</apex:outputPanel>
+						</apex:column>
+						<apex:column headerValue="Прошел" width="20%" >
+							<apex:outputPanel rendered="{!item.ReadOnly}">
+								<apex:outputField value="{!item.Member.IsPassed__c}"/>
+								
+								<apex:outputPanel rendered="{! not( isBlank( item.Member.Reason__c ) ) }">
+									<apex:outputText value="Причина пропуска на мероприятие: {0} {1}">
+										<apex:param value="{!item.Member.Reason__c}"/>
+										<apex:param value="{!item.Member.Comment__c}"/>
+									</apex:outputText>
+								</apex:outputPanel>
+	
+							</apex:outputPanel>
+							<apex:outputPanel rendered="{!not(item.ReadOnly)}">
+								<apex:outputPanel rendered="{!item.WasMarked}">
+									<apex:inputField value="{!item.Member.IsPassed__c}"/>
+								</apex:outputPanel>
+								<apex:outputPanel rendered="{!not(item.WasMarked)}">
+									
+									<apex:pageMessage summary="Необходимо оплатить" 
+											severity="warning"
+											strength="1"
+											rendered="{!and( 
+												item.OpportunityEvent.OpportunityId__r.StageName != 'Оплачено', 
+												item.OpportunityEvent.OpportunityId__r.StageName != 'Разморожено', 
+												item.OpportunityEvent.OpportunityId__r.StageName != 'Бесплатно' 
+											)}">
+										
+										<apex:outputPanel >
+
+															<apex:inputField value="{!item.Member.IsPassed__c}" id="IsPassed" >
+																<apex:actionSupport event="onclick" rerender="MemberComment" />
+															</apex:inputField>			
+															<apex:outputLabel value="Отметить все равно" for="IsPassed"/>
+										</apex:outputPanel>
+									</apex:pageMessage>
+
+										<apex:outputPanel id="MemberComment" 
+										rendered="{!and( 
+												item.OpportunityEvent.OpportunityId__r.StageName != 'Оплачено', 
+												item.OpportunityEvent.OpportunityId__r.StageName != 'Разморожено', 
+												item.OpportunityEvent.OpportunityId__r.StageName != 'Бесплатно' 
+											)}">
+											<apex:outputPanel rendered="{!item.Member.IsPassed__c == true}">
+												<div class="DayMemberDeatil">
+												<apex:pageBlock >
+													<apex:pageBlockSection columns="1">
+														<apex:inputField value="{!item.Member.Reason__c}" required="true" id="Reason"/>
+														<apex:inputField value="{!item.Member.Comment__c}" />
+													</apex:pageBlockSection> 
+												</apex:pageBlock>
+												</div>
+											</apex:outputPanel>
+										</apex:outputPanel>			
+									<apex:inputField value="{!item.Member.IsPassed__c}" 
+										rendered="{!or( item.OpportunityEvent.OpportunityId__r.StageName == 'Оплачено', 
+														item.OpportunityEvent.OpportunityId__r.StageName == 'Разморожено',
+														item.OpportunityEvent.OpportunityId__r.StageName == 'Бесплатно' )}"/>
+
+								</apex:outputPanel>
+							</apex:outputPanel>
+						</apex:column>
+						<apex:column headerValue="Номер браслета" width="20%">
+							<apex:outputPanel rendered="{!NOT(item.ReadOnly)}">
+								<apex:inputField value="{!item.Member.ArmletKey__c}"/>
+							</apex:outputPanel>
+						</apex:column>
+					</apex:pageBlockTable>
+				</div>
+			</apex:repeat>
+		</apex:pageBlock>
+
+	</apex:form>
+
+</apex:page>

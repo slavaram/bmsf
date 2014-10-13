@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="BM Salesforce" basedir="." xmlns:sf="antlib:com.salesforce">
+
+	<import file="lib/ant-salesforce.xml" />
+	<property file="build.properties"/>
+
+
+	<!-- #################################################################################### -->
+	<!-- deploy chosen files to the salesforce server -->
+	<target name="[Deploy]">
+		<!-- verify that properties are specified -->
+		<fail message="ERROR: One of the properties is not specified.">
+			<condition>
+				<and>
+					<or>
+						<equals arg1="${deploy.files}" arg2=""/>
+						<equals arg1="${deploy.package.name}" arg2=""/>
+						<equals arg1="${sf.s.username}" arg2=""/>
+						<equals arg1="${sf.s.password}" arg2=""/>
+						<equals arg1="${sf.s.login.url}" arg2=""/>
+					</or>
+					<or>
+						<equals arg1="${deploy.files}" arg2=""/>
+						<equals arg1="${deploy.package.name}" arg2=""/>
+						<equals arg1="${sf.p.username}" arg2=""/>
+						<equals arg1="${sf.p.password}" arg2=""/>
+						<equals arg1="${sf.p.login.url}" arg2=""/>
+					</or>
+				</and>
+			</condition>
+		</fail>
+		<!-- delete the previously created directory if previous build has failed -->
+		<delete dir="${deploy.package.name}" />
+		<!-- create the import package -->
+		<for list="${deploy.files}" param="filename" delimiter=','>
+			<sequential>
+				<if>
+					<contains string="@{filename}" substring=".cls" />
+					<then>
+						<copy todir="${deploy.package.name}/classes" flatten="true">
+							<fileset dir=".">
+								<include name="**/@{filename}" />
+								<include name="**/@{filename}-meta.xml" />
+							</fileset>
+						</copy>
+					</then>
+					<elseif>
+						<contains string="@{filename}" substring=".trigger" />
+						<then>
+							<copy todir="${deploy.package.name}/triggers" flatten="true">
+								<fileset dir=".">
+									<include name="**/@{filename}" />
+									<include name="**/@{filename}-meta.xml" />
+								</fileset>
+							</copy>
+						</then>
+					</elseif>
+					<elseif>
+						<contains string="@{filename}" substring=".component" />
+						<then>
+							<copy todir="${deploy.package.name}/components" flatten="true">
+								<fileset dir=".">
+									<include name="**/@{filename}" />
+									<include name="**/@{filename}-meta.xml" />
+								</fileset>
+							</copy>
+						</then>
+					</elseif>
+					<elseif>
+						<contains string="@{filename}" substring=".page" />
+						<then>
+							<copy todir="${deploy.package.name}/pages" flatten="true">
+								<fileset dir=".">
+									<include name="**/@{filename}" />
+									<include name="**/@{filename}-meta.xml" />
+								</fileset>
+							</copy>
+						</then>
+					</elseif>
+				</if>
+			</sequential>
+		</for>
+		<!-- create the package manifest file -->
+		<echo file="${deploy.package.name}/package.xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+	<types>
+		<members>*</members>
+		<name>ApexClass</name>
+	</types>
+	<types>
+		<members>*</members>
+		<name>ApexTrigger</name>
+	</types>
+	<types>
+		<members>*</members>
+		<name>ApexComponent</name>
+	</types>
+	<types>
+		<members>*</members>
+		<name>ApexPage</name>
+	</types>
+	<version>${sf.api.version}</version>
+</Package>]]></echo>
+		<!-- deploy the import package -->
+		<if>
+			<equals arg1="${use.sandbox}" arg2="true"/>
+			<then>
+				<sf:deploy username="${sf.s.username}" password="${sf.s.password}" serverurl="${sf.s.login.url}" deployroot="${deploy.package.name}/" />
+			</then>
+			<else>
+				<sf:deploy username="${sf.p.username}" password="${sf.p.password}" serverurl="${sf.p.login.url}" deployroot="${deploy.package.name}/" />
+			</else>
+		</if>
+		<!-- delete the import package -->
+		<delete dir="${deploy.package.name}" />
+	</target>
+	
+	
+	<!-- #################################################################################### -->
+	<!-- delete the data from salesforce server -->
+	<target name="[Delete]">
+		<!-- verify that properties are specified -->
+		<fail message="ERROR: Files are not specified.">
+			<condition>
+				<equals arg1="${delete.files}" arg2=""/>
+			</condition>
+		</fail>
+		<!-- delete the previously created directory if previous build has failed -->
+		<delete dir="${deploy.package.name}" />
+		<!-- create package -->
+		<echo file="${deploy.package.name}/destructiveChanges.xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">]]></echo>
+		<for list="${delete.files}" param="file" delimiter=','>
+			<sequential>
+				<if>
+					<contains string="@{file}" substring=".cls" />
+					<then>
+						<basename property="file.name" file="@{file}" suffix=".cls"/>
+						<echo file="${deploy.package.name}/destructiveChanges.xml" append="true"><![CDATA[
+	<types>
+		<members>${file.name}</members>
+		<name>ApexClass</name>
+	</types>]]></echo>
+						<var name="file.name" unset="true"/>
+					</then>
+					<elseif>
+						<contains string="@{file}" substring=".trigger" />
+						<then>
+							<basename property="file.name" file="@{file}" suffix=".trigger"/>
+							<echo file="${deploy.package.name}/destructiveChanges.xml" append="true"><![CDATA[
+	<types>
+		<members>${file.name}</members>
+		<name>ApexTrigger</name>
+	</types>]]></echo>
+							<var name="file.name" unset="true"/>
+						</then>
+					</elseif>
+					<elseif>
+						<contains string="@{file}" substring=".component" />
+						<then>
+							<basename property="file.name" file="@{file}" suffix=".component"/>
+							<echo file="${deploy.package.name}/destructiveChanges.xml" append="true"><![CDATA[
+	<types>
+		<members>${file.name}</members>
+		<name>ApexComponent</name>
+	</types>]]></echo>
+							<var name="file.name" unset="true"/>
+						</then>
+					</elseif>
+					<elseif>
+						<contains string="@{file}" substring=".page" />
+						<then>
+							<basename property="file.name" file="@{file}" suffix=".page"/>
+							<echo file="${deploy.package.name}/destructiveChanges.xml" append="true"><![CDATA[
+	<types>
+		<members>${file.name}</members>
+		<name>ApexPage</name>
+	</types>]]></echo>
+							<var name="file.name" unset="true"/>
+						</then>
+					</elseif>
+				</if>
+			</sequential>
+		</for>
+		<echo file="${deploy.package.name}/destructiveChanges.xml" append="true"><![CDATA[
+</Package>]]></echo>
+		<!-- create the package manifest file -->
+		<echo file="${deploy.package.name}/package.xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+	<version>${sf.api.version}</version>
+</Package>]]></echo>
+		<!-- deploy the import package -->
+		<if>
+			<equals arg1="${use.sandbox}" arg2="true"/>
+			<then>
+				<sf:deploy username="${sf.s.username}" password="${sf.s.password}" serverurl="${sf.s.login.url}" deployroot="${deploy.package.name}/" />
+			</then>
+			<else>
+				<sf:deploy username="${sf.p.username}" password="${sf.p.password}" serverurl="${sf.p.login.url}" deployroot="${deploy.package.name}/" />
+			</else>
+		</if>
+		<!-- delete the import package -->
+		<delete dir="${deploy.package.name}" />
+	</target>
+
+
+	<!-- #################################################################################### -->
+	<!-- delete the file -->
+	<target name="[ExecuteAnonymous]">
+		<!-- verify that properties are specified -->
+		<fail message="ERROR: Anonymous script is empty.">
+			<condition>
+				<not>
+					<length file="anonymous" when="greater" length="1" />
+				</not>
+			</condition>
+		</fail>
+		<!-- execute anonymous -->
+		<loadfile property="anonymous.execute" srcFile="anonymous"/>
+		<if>
+			<equals arg1="${use.sandbox}" arg2="true"/>
+			<then>
+				<executeApex username="${sf.s.username}" password="${sf.s.password}" serverurl="${sf.s.server.url}" loginurl="${sf.s.login.url}" >${anonymous.execute}</executeApex>
+			</then>
+			<else>
+				<executeApex username="${sf.p.username}" password="${sf.p.password}" serverurl="${sf.p.server.url}" loginurl="${sf.p.login.url}" >${anonymous.execute}</executeApex>
+			</else>
+		</if>
+	</target>
+
+
+	<!-- #################################################################################### -->
+	<!-- run the tests on the salesforce server -->
+	<target name="[RunTests]">
+		<!-- delete the previously created directory if previous build has failed -->
+		<delete dir="${deploy.package.name}" />
+		<!-- create package -->
+		<echo file="${deploy.package.name}/package.xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+	<version>${sf.api.version}</version>
+</Package>]]></echo>
+		<!-- run tests -->
+		<if>
+			<equals arg1="${use.sandbox}" arg2="true"/>
+			<then>
+				<if>
+					<equals arg1="${run.test}" arg2=""/>
+					<then>
+						<sf:deploy username="${sf.s.username}" password="${sf.s.password}" serverurl="${sf.s.login.url}" deployroot="${deploy.package.name}/" runAllTests="true" />
+					</then>
+					<else>
+						<sf:deploy username="${sf.s.username}" password="${sf.s.password}" serverurl="${sf.s.login.url}" deployroot="${deploy.package.name}/">
+							<runTest>${run.test}</runTest>
+						</sf:deploy>
+					</else>
+				</if>
+			</then>
+			<else>
+				<if>
+					<equals arg1="${run.test}" arg2=""/>
+					<then>
+						<sf:deploy username="${sf.p.username}" password="${sf.p.password}" serverurl="${sf.p.login.url}" deployroot="${deploy.package.name}/" runAllTests="true" />
+					</then>
+					<else>
+						<sf:deploy username="${sf.p.username}" password="${sf.p.password}" serverurl="${sf.p.login.url}" deployroot="${deploy.package.name}/">
+							<runTest>${run.test}</runTest>
+						</sf:deploy>
+					</else>
+				</if>
+			</else>
+		</if>
+		<!-- delete the import package -->
+		<delete dir="${deploy.package.name}" />
+	</target>
+
+
+	<!-- #################################################################################### -->
+	<!-- create the file -->
+	<target name="add">
+		<!-- verify that properties are specified -->
+		<fail message="ERROR: Can not create file without name.">
+			<condition>
+				<equals arg1="${add.file}" arg2=""/>
+			</condition>
+		</fail>
+		<!-- check file name duplication -->
+		<fileset dir="." id="dobleset">
+			<include name="**/${add.file}" />
+			<include name="**/${add.file}-meta.xml" />
+		</fileset>
+		<pathconvert refid="dobleset" property="fileset.notempty" />
+		<fail message="ERROR: Duplicate file name.">
+			<condition>
+				<not>
+					<equals arg1="${fileset.notempty}" arg2=""/>
+				</not>
+			</condition>
+		</fail>
+		<if>
+			<contains string="${add.file}" substring=".cls" />
+			<then>
+				<basename property="file.name" file="${add.file}" suffix=".cls"/>
+					<if>
+						<contains string="${add.file}" substring="Test.cls"/>
+						<then>
+							<echo file="./src_test/${add.file}">public class ${file.name} {
+
+}</echo>
+							<echo file="./src_test_meta/${add.file}-meta.xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata">
+	<apiVersion>${sf.api.version}</apiVersion>
+	<status>Active</status>
+</ApexClass>]]></echo>
+						</then>
+						<else>
+							<echo file="./src/apex/${add.file}">public class ${file.name} {
+
+}</echo>
+							<echo file="./src_meta/apex/${add.file}-meta.xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata">
+	<apiVersion>${sf.api.version}</apiVersion>
+	<status>Active</status>
+</ApexClass>]]></echo>
+						</else>
+					</if>
+			</then>
+			<elseif>
+				<contains string="${add.file}" substring=".trigger" />
+				<then>
+					<basename property="file.name" file="${add.file}" suffix=".trigger"/>
+					<echo file="./src/apex/${add.file}"><![CDATA[trigger ${file.name} on <type object name> (<type actions>) {
+
+}]]></echo>
+					<echo file="./src_meta/apex/${add.file}-meta.xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<ApexTrigger xmlns="http://soap.sforce.com/2006/04/metadata">
+	<apiVersion>${sf.api.version}</apiVersion>
+    <status>Active</status>
+</ApexTrigger>]]></echo>
+				</then>
+			</elseif>
+			<elseif>
+				<contains string="${add.file}" substring=".component" />
+				<then>
+					<echo file="./src/visualforce/${add.file}"><![CDATA[<apex:component>
+
+</apex:component>]]></echo>
+					<echo file="./src_meta/visualforce/${add.file}-meta.xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<ApexComponent xmlns="http://soap.sforce.com/2006/04/metadata">
+	<apiVersion>${sf.api.version}</apiVersion>
+	<label>Actions</label>
+</ApexComponent>]]></echo>
+				</then>
+			</elseif>
+			<elseif>
+				<contains string="${add.file}" substring=".page" />
+				<then>
+					<basename property="file.name" file="${add.file}" suffix=".page"/>
+					<echo file="./src/visualforce/${add.file}"><![CDATA[<apex:page>
+
+</apex:page>]]></echo>
+					<echo file="./src_meta/visualforce/${add.file}-meta.xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<ApexPage xmlns="http://soap.sforce.com/2006/04/metadata">
+	<apiVersion>${sf.api.version}</apiVersion>
+	<availableInTouch>true</availableInTouch>
+	<confirmationTokenRequired>false</confirmationTokenRequired>
+	<label>${file.name}</label>
+</ApexPage>]]></echo>
+				</then>
+			</elseif>
+		</if>
+	</target>
+
+
+	<!-- #################################################################################### -->
+	<!-- delete the file -->
+	<target name="remove">
+		<!-- verify that properties are specified -->
+		<fail message="ERROR: Can not create file. Name property do not specified.">
+			<condition>
+				<equals arg1="${remove.file}" arg2=""/>
+			</condition>
+		</fail>
+		<!-- delete the file -->
+		<delete>
+			<fileset dir=".">
+				<include name="**/${remove.file}"/>
+				<include name="**/${remove.file}-meta.xml"/>
+			</fileset>
+		</delete>
+	</target>
+
+
+	<!-- #################################################################################### -->
+	<!-- delete the file -->
+	<target name="rename">
+		<!-- verify that properties are specified -->
+		<fail message="ERROR: Can not rename file. One of the properties do not specified.">
+			<condition>
+				<or>
+					<equals arg1="${rename.file.from}" arg2=""/>
+					<equals arg1="${rename.file.to}" arg2=""/>
+				</or>
+			</condition>
+		</fail>
+		<!-- check file existance -->
+		<fileset dir="." id="fileset">
+			<include name="**/${rename.file.from}" />
+			<include name="**/${rename.file.from}-meta.xml" />
+		</fileset>
+		<pathconvert refid="fileset" property="fileset.notempty" />
+		<fail message="ERROR: File not found.">
+			<condition>
+				<equals arg1="${fileset.notempty}" arg2=""/>
+			</condition>
+		</fail>
+		<!-- rename the file -->
+		<move todir="." includeemptydirs="false">
+			<fileset dir=".">
+				<include name="**/${rename.file.from}" />
+			</fileset>
+			<mapper type="glob" from="*${rename.file.from}" to="*${rename.file.to}"/>
+		</move>
+		<move todir="." includeemptydirs="false">
+			<fileset dir=".">
+				<include name="**/${rename.file.from}-meta.xml" />
+			</fileset>
+			<mapper type="glob" from="*${rename.file.from}-meta.xml" to="*${rename.file.to}-meta.xml" />
+		</move>
+	</target>
+
+
+	<!-- #################################################################################### -->
+	<!-- check the project code style -->
+	<target name="check style">
+	
+	</target>
+
+</project>

@@ -1,0 +1,39 @@
+<apex:page standardController="Task" extensions="TaskControllerExtension" showChat="true" title="Задачи" tabStyle="TasksTab__tab">
+
+	<style>
+		.x-grid3-td-ACTION_COLUMN,
+		.x-grid3-td-checkbox {
+			display: none !important;
+		}
+		.pageTitleIcon {
+			background-image: url(/resource/ImgTask) !important;
+			background-size: 32px 32px !important;
+			background-position: 0px 0px !important;
+			background-repeat: no-repeat !important;
+			width: 32px;
+			height: 32px;
+		}
+		span.task-creation-message {
+			color: red;
+			padding-left: 10px;
+		}
+		form.create-task-form {
+			padding: 10px 0px;
+		}
+		option[value='00Bb0000002BsCF'] {
+			color: red;
+		}
+	</style>
+
+
+	<apex:form styleClass="create-task-form">
+		<apex:commandButton action="{!assignNewCallTask}" value="Получить задачу"/>
+		<apex:outputPanel id="taskCreationDetails" rendered="{!NOT(ISBLANK(taskCreationErrorMessage))}">
+			<span class="task-creation-message">{!taskCreationErrorMessage}</span>
+		</apex:outputPanel>
+	</apex:form>
+
+	<apex:enhancedList type="Activity" height="500" rowsPerPage="50" customizable="true"/>
+
+
+</apex:page>

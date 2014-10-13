@@ -1,0 +1,270 @@
+<apex:page controller="ActionsCreaterController">
+
+	<style type="text/css">
+		.LabelCell {
+			text-align: right;
+			font-weight: bold;
+			vertical-align: middle;
+		}
+		.FormTable {
+			display: none;
+			width: 100%;
+			border: 1px solid black;
+		}
+	</style>
+
+
+	<apex:sectionHeader title="Мероприятия" subtitle="Быстрое создание мероприятий" id="TheSectionHeader"/>
+
+	<apex:pageMessages id="Messages"/>
+
+	<apex:form id="TheForm">
+		<apex:pageBlock id="TheBlok">
+			<apex:pageBlockButtons >
+				<apex:commandButton action="{!createAction}" value="Создать"/>
+			</apex:pageBlockButtons>
+			<apex:pageBlockSection id="TheSection1">
+				<apex:selectRadio label="Тип мероприятия" value="{!mActivity}" layout="pageDirection" onchange="switchForm(this)">
+					<apex:selectOptions value="{!mActivities}" />
+				</apex:selectRadio>
+			</apex:pageBlockSection>
+			<apex:pageBlockSection id="TheSection2">
+				<table class="FormTable">
+					<tr>
+						<td class="LabelCell">Название мероприятия:</td>
+						<td><apex:inputTextArea value="{!mName0}" /></td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Стоимость:</td>
+						<td>
+							<apex:inputText value="{!mPrice0}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Форма проведения:</td>
+						<td>
+							<apex:selectRadio value="{!mType}" layout="pageDirection" onchange="switchDates(this)">
+								<apex:selectOptions value="{!mTypes}" />
+							</apex:selectRadio>
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Город:</td>
+						<td><apex:outputText value="Москва" /></td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Начало</td>
+						<td>
+							<apex:outputText value="01.01.2014 20:00" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Конец</td>
+						<td>
+							<apex:outputText value="01.07.2014 24:00" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Начало регистрации</td>
+						<td>
+							<apex:outputText value="{!mStartReg}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Конец регистрации</td>
+						<td>
+							<apex:outputText value="01.01.2100 23:59" styleClass="Time" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Начало оплаты</td>
+						<td>
+							<apex:outputText value="{!mStartPay}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Конец оплаты</td>
+						<td>
+							<apex:outputText value="01.01.2100 23:59" styleClass="Time" />
+						</td>
+					</tr>
+				</table>
+
+				
+				<table class="FormTable">
+					<tr>
+						<td class="LabelCell">Название мероприятия:</td>
+						<td><apex:inputTextArea value="{!mName1}" /></td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Стоимость:</td>
+						<td>
+							<apex:inputText value="{!mPrice1}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">В зале?</td>
+						<td>
+							<apex:inputCheckbox value="{!mIsIn1}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Город:</td>
+						<td>
+							<apex:inputText value="{!mCity1}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Начало</td>
+						<td>
+							<apex:inputText value="{!mStartDate1}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Конец</td>
+						<td>
+							<apex:inputText value="{!mEndDate1}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Начало регистрации</td>
+						<td>
+							<apex:outputText value="{!mStartReg}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Конец регистрации</td>
+						<td>
+							<apex:inputText value="{!mEndReg1}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Начало оплаты</td>
+						<td>
+							<apex:outputText value="{!mStartPay}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Конец оплаты</td>
+						<td>
+							<apex:inputText value="{!mEndPay1}" />
+						</td>
+					</tr>
+				</table>
+
+
+				<table class="FormTable">
+					<tr>
+						<td class="LabelCell">Название мероприятия:</td>
+						<td><apex:inputTextArea value="{!mName2}" /></td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Стоимость:</td>
+						<td>
+							<apex:inputText value="{!mPrice2}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">В зале?</td>
+						<td>
+							<apex:inputCheckbox value="{!mIsIn2}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Город:</td>
+						<td>
+							<apex:inputText value="{!mCity2}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Начало</td>
+						<td>
+							<apex:inputText value="{!mStartDate2}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Конец</td>
+						<td>
+							<apex:inputText value="{!mEndDate2}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Начало регистрации</td>
+						<td>
+							<apex:outputText value="{!mStartReg}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Конец регистрации</td>
+						<td>
+							<apex:inputText value="{!mEndReg2}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Начало оплаты</td>
+						<td>
+							<apex:outputText value="{!mStartPay}" />
+						</td>
+					</tr>
+					<tr>
+						<td class="LabelCell">Конец оплаты</td>
+						<td>
+							<apex:inputText value="{!mEndPay2}" />
+						</td>
+					</tr>
+				</table>
+			</apex:pageBlockSection>
+		</apex:pageBlock>
+	</apex:form>
+
+
+	<script type="text/javascript">
+
+		var prevNumber = -1;
+		var previousOnload = window.onload;
+
+		window.onload = function() {
+			if (previousOnload) { 
+				previousOnload();
+			}
+			onloadWork();
+		}
+
+		function onloadWork() {
+
+		}
+
+		function showPriceInput(input) {
+			var prices = document.getElementsByClassName('Price');
+			if (prices[input].style.display == 'none') {
+				prices[input].style.display = 'inline-block';
+			} else {
+				prices[input].style.display = 'none';
+			}
+		}
+
+		function switchForm(elem) {
+			var number = elem.getAttribute('value');
+			var tables = document.getElementsByClassName('FormTable');
+			tables[number].style.display = 'block';
+			if (prevNumber >= 0) {
+				tables[prevNumber].style.display = 'none';
+			}
+			prevNumber = number;
+		}
+
+		function switchDates(elem) {
+			var number = elem.getAttribute('value');
+			var rows = document.getElementsByClassName('Time');
+			if (number == 0) {
+				rows[0].innerHTML = '01.01.2100 23:59';
+				rows[1].innerHTML = '01.01.2100 23:59';
+			} else {
+				rows[0].innerHTML = '01.07.2014 22:00';
+				rows[1].innerHTML = '01.07.2014 22:00';
+			}
+		}
+
+	</script>
+
+</apex:page>

@@ -1,0 +1,33 @@
+<apex:page standardController="Opportunity" extensions="OpportunityController" showHeader="true" sidebar="true" showChat="true"
+title="{!if(Controller.thisOpportunity.Id != null, 'Заявка №'&Controller.thisOpportunity.Name, 'Новая заявка')}">
+
+	<apex:sectionHeader title="{!if(Controller.thisOpportunity.Id != null, 'Заявка №'&Controller.thisOpportunity.Name, 'Новая заявка')}" 
+		subtitle="{!if(Controller.thisOpportunity.Id != null, 'Редактирование', 'Создание')}" />
+
+	<apex:form >
+	<apex:pageBlock title="Заявка" mode="edit">
+		<apex:pageBlockButtons >
+			<apex:commandButton value="Сохранить" action="{!Save}"/>
+			<apex:commandButton value="Отмена" action="{!Cancel}" immediate="true"/>
+		</apex:pageBlockButtons>
+
+			<apex:pageBlockButtons >
+				<apex:commandButton value="Сохранить" action="{!Save}"/>
+				<apex:commandButton value="Отмена" action="{!Cancel}" immediate="true"/>
+			</apex:pageBlockButtons>
+
+			<apex:pageMessages />
+
+			<c:Opportunity controller="{!Controller}" rendered="{!thisAccount.RecordTypeId != '012b0000000Cqr1AAC'}" id="FizOppo"/>
+			<c:OpportunityUL controller="{!Controller}" rendered="{!thisAccount.RecordTypeId == '012b0000000Cqr1AAC'}" id="UlOppo"/>
+
+			<apex:pageBlockSection rendered="{!NOT(isBlank(Controller.thisOpportunity.AccountId))}">
+				<apex:inputField value="{!thisAccount.Industry}"/>
+			</apex:pageBlockSection>
+
+		</apex:pageBlock>
+	</apex:form>
+
+	<c:OpportunityFunctions controller="{!Controller}"/>
+
+</apex:page>

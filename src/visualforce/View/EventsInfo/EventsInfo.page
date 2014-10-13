@@ -1,0 +1,168 @@
+<apex:page controller="EventsInfoController">
+
+	<style>
+		input.input  {
+			width: 156px ;
+			height: 15px ;
+			margin-top: 2px ;
+			margin-bottom: 2px ;
+		}
+		select.input  {
+			width: 160px ;
+		}
+		td.LabelCell {
+			text-align: right;
+			font-weight: bold;
+		}
+		#FilterForSearch {
+			margin: 10px 0px 10px 50px;
+		}
+		#TheGroupsTable {
+			margin: 5px 0px 10px 0px;
+		}
+		#TheGroupsTable td,
+		#FilterForSearch td {
+			padding-left: 20px;
+			vertical-align: middle;
+		}
+		.activeTab {
+			background-color: #236FBD; 
+			color:white; 
+			background-image: none;
+		}
+		.inactiveTab {
+			background-color: #D3D3D3; 
+			color: black; 
+			background-image: none;
+		}
+		.MessegeFuture {
+			color: green;
+			margin-left: 20px;
+		}
+		.ChangedPrice {
+			color: red;
+		}
+		#GroupsBlock {
+			margin-left: 150px;
+		}
+	</style>
+
+
+	<apex:sectionHeader title="Продукты" subtitle="Список продуктов, связанных с мероприятиями"/>
+
+	<apex:pageMessages />
+
+	<apex:form id="TheForm">
+
+		<table id="FilterForSearch">
+			<tr>
+				<td class="LabelCell">
+					<apex:outputLabel value="Город, в котором проходит мероприятие:" />
+				</td>
+				<td>
+					<apex:inputField value="{!mCityLookUp.CityId__c}"  styleClass="input" >
+						<apex:actionSupport event="onchange" action="{!processProducts}" status="refreshProducts" reRender="TabPanel"/>
+					</apex:inputField>
+				</td>
+				<td>
+					<apex:actionStatus id="refreshProducts" onstop="">
+						<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+					</apex:actionStatus>
+				</td>
+			</tr>
+		</table>
+
+		<apex:tabPanel switchType="client" selectedTab="CalendarTab" tabClass="activeTab" inactiveTabClass="inactiveTab" id="TabPanel">
+
+			<apex:tab id="TabMasterGroup" label="Текущие региональные мастер классы">
+				<apex:pageBlock id="BlockMasterGroup" rendered="{!mMasterGroupEvents.size > 0}">
+					<apex:pageBlockTable value="{!mMasterGroupEvents}" var="event" styleClass="" id="TableMasterGroupProducts">
+						<apex:column headerValue="Продукт">
+							<apex:outputLink value="/{!event.productId}" target="_parent"><apex:outputText value="{!event.productName}" /></apex:outputLink>
+						</apex:column>
+						<apex:column headerValue="Мероприятие">
+							<apex:outputLink value="/{!event.actionId}" target="_parent"><apex:outputText value="{!event.actionName}" /></apex:outputLink>
+						</apex:column>
+						<apex:column headerValue="Дата начала">
+							<apex:outputText value="{0, date, dd'.'MM'.'yyyy}">
+								<apex:param value="{!event.actionStartDate}" />
+							</apex:outputText>
+						</apex:column>
+						<apex:column headerValue="Время начала">
+							<apex:outputText value="{!event.actionStartTime}"/>
+						</apex:column>
+						<apex:column headerValue="Цена">
+							<apex:outputText value="{!event.productPrice}" />
+						</apex:column>
+						<apex:column headerValue="Создать заявку">
+							<apex:commandLink value="Создать" action="{!createOpportunity}">
+								<apex:param name="ProductId" value="{!event.productId}" assignTo="{!mProductId}" />
+								<apex:param name="ActionId" value="{!event.actionId}" assignTo="{!mActionId}" />
+							</apex:commandLink>
+						</apex:column>
+					</apex:pageBlockTable>
+				</apex:pageBlock>
+				<apex:outputText value="Нет мероприятий" rendered="{!mMasterGroupEvents.size == 0}" />
+			</apex:tab>
+
+			<apex:tab id="TabAllProducts" label="Все продукты">
+
+				<apex:pageBlock id="BlockAllProducts">
+					<div id="GroupsBlock">
+					<table id="TheGroupsTable">
+						<tr>
+							<td class="LabelCell">Группа продуктов:</td>
+							<td>
+								<apex:selectList value="{!mProductGroup}" size="1" multiselect="false" styleClass="input">
+									<apex:selectOptions value="{!mProductGroups}"/>
+									<apex:actionSupport event="onchange" action="{!processProducts}" status="refreshAllProducts" reRender="BlockAllProducts"/>
+								</apex:selectList>
+							</td>
+							<td>
+								<apex:actionStatus id="refreshAllProducts" onstop="">
+									<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+								</apex:actionStatus>
+							</td>
+						</tr>
+					</table>
+					</div>
+
+					<apex:pageBlockTable value="{!mEvents}" var="event" styleClass="" id="TableProducts" rendered="{!mEvents.size > 0}">
+						<apex:column headerValue="Группа продуктов" rendered="{!event.isRowSpanedOwer}" rowspan="{!event.rowSpanedOwer}">
+							<apex:outputLink value="/{!event.productGroupId}" target="_parent"><apex:outputText value="{!event.productGroupName}" /></apex:outputLink>
+						</apex:column>
+						<apex:column headerValue="Продукт">
+							<apex:outputLink value="/{!event.productId}" target="_parent"><apex:outputText value="{!event.productName}" /></apex:outputLink>
+						</apex:column>
+						<apex:column headerValue="Мероприятие">
+							<apex:outputLink value="/{!event.actionId}" target="_parent"><apex:outputText value="{!event.actionName}" /></apex:outputLink>
+							<apex:outputText value="Будет" rendered="{!IF((event.actionStartDate != null), (mToday.Date__c < event.actionStartDate), false)}" styleClass="MessegeFuture" />
+						</apex:column>
+						<apex:column headerValue="Начало">
+							<apex:outputText value="{0, date, dd'.'MM'.'yyyy}">
+								<apex:param value="{!event.actionStartDate}" />
+							</apex:outputText>
+						</apex:column>
+						<apex:column headerValue="Окончание">
+							<apex:outputText value="{0, date, dd'.'MM'.'yyyy}">
+								<apex:param value="{!event.actionEndDate}" />
+							</apex:outputText>
+						</apex:column>
+						<apex:column headerValue="Цена">
+							<apex:outputText value="{!event.productPrice}" />
+						</apex:column>
+						<apex:column headerValue="Новая цена завтра">
+							<apex:outputText value="{!event.productPriceTomorrow}" rendered="{!event.productPrice != event.productPriceTomorrow}" styleClass="ChangedPrice" />
+						</apex:column>
+					</apex:pageBlockTable>
+
+					<apex:outputText value="Нет мероприятий" rendered="{!mEvents.size == 0}" />
+				</apex:pageBlock>
+
+			</apex:tab>
+
+		</apex:tabPanel>
+
+	</apex:form>
+
+</apex:page>

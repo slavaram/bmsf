@@ -215,6 +215,7 @@ public class EventsInfoController {
 											WHERE ActionID__r.CityId__c = :mCityLookUp.CityId__c
 											AND Product__r.ProductGroup__c IN :productGroups
 											AND (ActionID__r.RegistrationStartDate__c != NULL AND ActionID__r.RegistrationStartDate__c < :now)
+											AND (ActionID__r.RegistrationEndDate__c != NULL AND ActionID__r.RegistrationEndDate__c > :now)
 											AND (ActionID__r.EndDate__c != NULL AND ActionID__r.EndDate__c > TODAY)
 											AND ActionID__r.StartDate__c != NULL
 											ORDER BY Product__r.ProductGroup__r.Name DESC];

@@ -1,0 +1,230 @@
+<apex:page controller="TaskStackController" title="Задачи" showChat="true" sidebar="false" action="{!redirection}">
+
+	<style>
+		.right_buttons {
+			float: right;
+		}
+		.select_list {
+			margin-left: 5px;
+			margin-right: 10px;
+		}
+		.get_task {
+			text-decoration: none;
+            color: #333;
+		}
+		.get_task:hover {
+			text-decoration: none;
+            color: #333;
+		}
+		.get_task:active {
+			text-decoration: none;
+            color: #333;
+		}
+		.get_task:visited {
+			text-decoration: none;
+            color: #333;
+		}
+		.refresh {
+			background: url('/img/alohaSkin/sync.png') 2px 2px no-repeat !important;
+			width: 22px;
+			height: 22px;
+			text-indent: -2000px;
+		}
+		#ProgeressBar {
+			float: left;
+			width: 0.01%;
+			background-color: #52A1D1;
+			height: 3px;
+		}
+		.record_past {
+			width: 5px;
+			background-color: #FF6600;
+		}
+		.record_now {
+			width: 5px;
+			background-color: #009900;
+		}
+		.record_future {
+			width: 5px;
+			background-color: #00CCFF;
+		}
+		.record_in_progress {
+			width: 5px;
+			background-color: #FFFF00;
+		}
+		.columns,
+		.headers {
+			display: none;
+		}
+		#SpannedDiv {
+			height: 500px;
+			overflow: scroll;
+		}
+		.width350 {
+			width: 355px;
+		}
+		.width250 {
+			width: 250px;
+		}
+		.width150 {
+			width: 150px;
+		}
+		.width100 {
+			width: 100px;
+		}
+		.width9 {
+			width: 9px;
+		}
+		.width5 {
+			width: 5px;
+		}
+		.mask {
+			z-index: -9999;
+			position: fixed;
+            border-radius: 3px;
+			background-color: black;
+			opacity: 0.1;
+			filter: alpha(opacity=10);
+		}
+		.task_url_holder,
+		.message_block {
+			position: fixed;
+			display: none;
+			top: 0px;
+			left: 0px;
+			width: 250px;
+			height: 50px;
+			border: 1px solid #700000;
+			background-color: #FFFF00;
+			border-radius: 3px;
+			padding: 4px 3px;
+			font-weight: bold;
+			font-size: .9em;
+			font-family: Arial,Helvetica,sans-serif;
+		}
+	</style>
+
+	<apex:sectionHeader title="{!$User.FirstName} {!$User.LastName}" subtitle="Стек задач пользователя" />
+
+	<apex:form id="TheForm">
+		<apex:actionPoller action="{!refresh}" rerender="TheForm" interval="60" onsubmit="showMask()" oncomplete="hideMask()" />
+		<apex:actionFunction name="refreshWithTask" action="{!refreshWithTask}" rerender="TheForm" oncomplete="hideMask()" />
+
+		<apex:pageBlock id="TheBlock" title="Задачи">
+			<apex:pageBlockButtons id="TheButtons" location="top">
+				<apex:commandButton value="Получить задачу" onclick="openTaskTab(event);" rerender="TheTableHeader" />
+				<apex:outputPanel styleClass="right_buttons">
+					<apex:outputText value="Источник " />
+					<apex:selectList value="{!type}" multiselect="false" size="1" styleClass="select_list">
+						<apex:selectOptions value="{!types}"/>
+					</apex:selectList>
+					<apex:commandButton value="Обновить" action="{!refresh}" styleClass="refresh" reRender="TheForm" onclick="showMask()" oncomplete="hideMask()" />
+				</apex:outputPanel>
+			</apex:pageBlockButtons>
+			<apex:outputText value="{!noTaskMessage}" rendered="{!noRecords}" />
+			<apex:outputPanel  rendered="{!!noRecords}">
+				<div id="ProgeressBar" />
+				<apex:pageBlockTable id="TheTableHeader" value="{!records}" var="record" columnClasses="columns">
+					<apex:column headerClass="width5" />
+					<apex:column headerValue="Название" />
+					<apex:column headerValue="Связана с" headerClass="width350" />
+					<apex:column headerValue="Статус" headerClass="width150" />
+					<apex:column headerValue="Приоритет" headerClass="width150" />
+					<apex:column headerValue="Дедлайн" headerClass="width150" />
+					<apex:column headerClass="width9" />
+				</apex:pageBlocktable>
+				<div id="SpannedDiv">
+					<apex:pageBlocktable id="TheTableBody" value="{!records}" var="record" headerClass="headers">
+						<apex:column styleClass="{!IF(record.delta > 15, 'record_future', IF(record.delta < -15, 'record_past', 'record_now'))}" rendered="{!record.status != 'Выполняется'}" />
+						<apex:column styleClass="record_in_progress" rendered="{!record.status = 'Выполняется'}" />
+						<apex:column >
+							<apex:outputLink value="/{!record.Id}" target="_parent"><apex:outputText value="{!record.subject}" /></apex:outputLink>
+						</apex:column>
+						<apex:column styleClass="width100">
+							<apex:outputText value="Кампания" rendered="{!record.relatedObjectType = 'Campaign'}" />
+							<apex:outputText value="Обращение" rendered="{!record.relatedObjectType = 'Case'}" />
+							<apex:outputText value="Заявка" rendered="{!record.relatedObjectType = 'Opportunity'}" />
+							<apex:outputText value="Задача" rendered="{!record.relatedObjectType = 'Task'}" />
+						</apex:column>
+						<apex:column styleClass="width250">
+							<apex:outputLink value="/{!record.WhatId}" target="_parent" rendered="{!record.relatedObjectType != null}"><apex:outputText value="{!record.relatedObjectName}" /></apex:outputLink>
+						</apex:column>
+						<apex:column value="{!record.status}" styleClass="width150" />
+						<apex:column value="{!record.priority}" styleClass="width150" />
+						<apex:column value="{!record.deadline}" styleClass="width150" />
+					</apex:pageBlocktable>
+				</div>
+			</apex:outputPanel>
+		</apex:pageBlock>
+		<div id="TaskUrlHolder" class="task_url_holder">{!taskToBeDoneUrl}</div>
+		<div id="MessageHolder" class="message_block">{!message}</div>
+ 	</apex:form>
+	<div id="TheMask" class="mask"/>
+
+ 	<apex:includeScript value="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js" />
+ 	<script type="text/javascript">
+ 		j$ = jQuery.noConflict();
+		var previousOnload = window.onload;
+		var lastProgress;
+		var stop = false;
+
+		window.onload = function() {
+			if (previousOnload) { 
+				previousOnload();
+			}
+			onloadWork();
+		}
+
+		function onloadWork() {
+			var mask = document.getElementById('TheMask');
+			mask.style.width = j$('[id$=TheBlock]').width() + 'px';
+			mask.style.height = j$('[id$=TheBlock]').height() + 'px';
+			mask.style.top = j$('[id$=TheBlock]').offset().top + 'px';
+			mask.style.left = j$('[id$=TheBlock]').offset().left + 'px';
+			var d = new Date();
+			lastProgress = d.getTime();
+			setInterval("progress()", 49);
+		}
+
+		function showMask() {
+			stop = true;
+ 			document.getElementById('TheMask').style.zIndex = '9999';
+ 		}
+
+		function hideMask() {
+ 			document.getElementById('TheMask').style.zIndex = '-9999';
+			stop = false;
+			var d = new Date();
+			lastProgress = d.getTime();
+ 		}
+
+		function progress() {
+			var d = new Date();
+			var currentProgress = d.getTime();
+			var progress = (currentProgress - lastProgress)/600;
+			if (progress < 100 && !stop) {
+				document.getElementById('ProgeressBar').style.width = progress + '%';
+			} else {
+				stop = true;
+			}
+ 		}
+
+ 		function openTaskTab(event) {
+ 			var message = j$('#MessageHolder').html();
+ 			if (!message || 0 === message.length) {
+ 				showMask();
+	 			window.open(j$('#TaskUrlHolder').html(), '_blank');
+	 			window.focus();
+	 			refreshWithTask();
+ 			} else {
+ 				j$('#MessageHolder').css('left', event.clientX)
+ 									.css('top', event.clientY)
+ 									.fadeToggle(100);
+				setTimeout(function() {
+								j$('#MessageHolder').fadeToggle('slow');
+							}, 3000);
+ 			}
+ 		}
+ 	</script>
+
+</apex:page>

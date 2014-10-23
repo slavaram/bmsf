@@ -20,7 +20,7 @@ public class OpportunityController {
 		}
 	}
 
-	public PageReference Save() {
+	public PageReference save() {
 		if (thisAccount.Id != null ) {
 			try { 
 				update thisAccount;
@@ -29,12 +29,8 @@ public class OpportunityController {
 		return controller.save();
 	}
 
-	public PageReference Cancel() {
+	public PageReference cancel() {
 		return controller.cancel();
-	}
-
-	public PageReference Cancel(){
-		return Controller.Cancel();
 	}
 
 }

@@ -25,6 +25,111 @@ public class BMOpportunity {
 		}
 	}
 
+	public void createAccountRoleForUpdate(List<ApplicationsActivities__c> activities, String actionName, Decimal role) {
+        Map<Id, Set<Id>> mapClientId = new Map<Id, Set<Id>>();
+        List<StudyMember__c> roles = new List<StudyMember__c>();
+        for (ApplicationsActivities__c active : activities) {
+            if (active.OpportunityId__r.StageName == 'Оплачено'
+                    && active.ActionID__r.Name.contains(actionName)
+                    && active.ActionID__r.ParentId__c != null) {
+                String actId = active.ActionID__r.ParentId__c;
+                if (mapClientId.get(active.OpportunityId__r.AccountID) == null) {
+                    Set<Id> ids = new Set<Id>();
+                    ids.add(actId);
+                    mapClientId.put(active.OpportunityId__r.AccountID, ids);
+                } else {
+                    Set<Id> ids = mapClientId.get(active.OpportunityId__r.AccountID);
+                    ids.add(actId);
+                    mapClientId.put(active.OpportunityId__r.AccountID, ids);
+                }
+            }
+        }
+        if(mapClientId.isEmpty()) return;
+        for (Id clientId : mapClientId.keySet()) {
+            for(String act : mapClientId.get(clientId)) {
+                roles.add(new StudyMember__c(Client__c = clientId,
+                                             Event__c = act,
+                                             RoleNumber__c = role));
+            }
+        }
+        if (roles.isEmpty() == false) upsertRoles(roles, mapClientId.keySet());
+    }
+
+    public void createAccountRoleForInsert(List<Opportunity> opps, String actionName, Decimal role) {
+        List<StudyMember__c> roles = new List<StudyMember__c>();
+        Map<Id, Set<Id>> mapActionsId = new Map<Id, Set<Id>>();
+        Set<Id> setActionId = new Set<Id>();
+        for (Opportunity opp : opps) {
+            if (opp.ActionIds__c != null) {
+                Set<Id> actionIds = OpportunityMethod.oppToActionIdSet(opp);
+                if (opp.StageName == 'Оплачено' && opp.ActionNames__c.contains(actionName)) {
+                    if (mapActionsId.get(opp.AccountID) == null) {
+                        mapActionsId.put(opp.AccountID, actionIds);
+                    } else {
+                        Set<Id> ids = mapActionsId.get(opp.AccountID);
+                        ids.addAll(actionIds);
+                        mapActionsId.put(opp.AccountID, ids);
+                    }
+                    setActionId.addAll(actionIds);
+                }
+            }
+        }
+        if(setActionId.isEmpty()) return;
+        String actName = '%' + actionName + '%';
+        List<Action__c> actions = [SELECT ParentId__c 
+                                   FROM Action__c 
+                                   WHERE Name like :actName
+                                     AND ParentId__c != null
+                                     AND Id in :setActionId];
+        Map<Id, Set<Id>> mapActionsIdAll = new Map<Id, Set<Id>>();
+        for (Action__c action : actions) {
+            if (mapActionsIdAll.get(action.ParentId__c) == null) {
+                Set<Id> ids = new Set<Id>();
+                ids.add(action.Id);
+                mapActionsIdAll.put(action.ParentId__c, ids);
+            } else {
+                Set<Id> ids = mapActionsIdAll.get(action.ParentId__c);
+                ids.add(action.Id);
+                mapActionsIdAll.put(action.ParentId__c, ids);
+            }
+        }
+        for (Id account : mapActionsId.keySet()) {
+            for (Id action : mapActionsIdAll.keySet()) {
+                Set<Id> actionss = mapActionsId.get(account);
+                Set<Id> actionsp = mapActionsIdAll.get(action);
+                for(Id act : actionss) {
+                    if (actionsp.contains(act)) {
+                        roles.add(new StudyMember__c(Client__c = account,
+                                                     Event__c = action,
+                                                     RoleNumber__c = role));
+                        break;
+                    }
+                }
+            }
+        }
+        System.debug('Roles '+ roles);
+        if (roles.isEmpty() == false) upsertRoles(roles, mapActionsId.keySet());
+    }
+
+    private void upsertRoles(List<StudyMember__c> roles, Set<Id> accounts) {
+        List<StudyMember__c> rolesCheck = [SELECT Client__c, Event__c, RoleNumber__c FROM StudyMember__c WHERE Client__c IN :accounts];
+        rolesCheck.addAll(roles);
+        List<StudyMember__c> rolesInsert = new List<StudyMember__c>(); 
+        for (Integer i = 0 ; i < roles.size(); i++) {
+            Boolean check = true;
+            for (Integer j = i+1; j < roles.size(); j++ ) {
+                if (rolesCheck[i].Client__c == rolesCheck[j].Client__c
+                        && rolesCheck[i].Event__c == rolesCheck[j].Event__c
+                        && rolesCheck[i].RoleNumber__c == rolesCheck[j].RoleNumber__c) {
+                    check = false;
+                    break;
+                }
+            }
+            if (check) rolesInsert.add(rolesCheck[i]);
+        }
+        if (rolesInsert.isEmpty() == false) upsert rolesInsert;
+    }
+
 	public void calculateDiscount(List<Opportunity> opportunities) {
 		List<Opportunity> toUpdate = new List<Opportunity>();
 		for (Opportunity opportunity : opportunities) {

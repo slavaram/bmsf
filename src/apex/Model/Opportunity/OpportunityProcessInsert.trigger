@@ -1,27 +1,37 @@
 trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 
 	if (trigger.isBefore) {
-		for (Opportunity opp : trigger.new) {
-			opp.Name = 'temp';
-			opp.OwnerDup__c = opp.OwnerId;
-			if (opp.FromSite__c == true) {
-				opp.StageName = 'Новая';
-				opp.CloseDate = Date.today().addDays(7);
-			}
-		}
+		List<Id> listClientsIdAll = new List<Id>();
+        Map<Id, Account> clientsMap = new Map<Id, Account>();
+        for (Opportunity opp : trigger.new) {
+            opp.Name = 'temp';
+            listClientsIdAll.add(opp.AccountID);
+            opp.OwnerDup__c = opp.OwnerId;
+            if (opp.FromSite__c == true) {
+                opp.StageName = 'Новая';
+                opp.CloseDate = Date.today().addDays(7);
+            }
+        }
+        Id adminId = [SELECT Id FROM User WHERE Name = 'Администратор'].get(0).Id;
+        for(Account client : [SELECT Id, PersonEmail, Phone, OwnerId, Owner.IsActive
+                            FROM Account 
+                            WHERE Id in :listClientsIdAll]) {
 
-		Set<Account> toUpdate = new Set<Account>();
-		Id adminId = [SELECT Id FROM User WHERE Name = 'Администратор'].get(0).Id;
+            if (client.Owner.IsActive == false) {
+                client.OwnerId = adminId;
+            }
+            clientsMap.put(client.Id, client);
+        }
+
+		Map<Id, Account> toUpdate = new Map<Id, Account>();
 	    for (Opportunity opp : trigger.new)	{
 	    	if (opp.IsAllocated__c == true) continue;
 			try {
-				Account client = [SELECT Id, PersonEmail, Phone, OwnerId
-				                  FROM Account
-				                  WHERE Id = :opp.AccountId];
+				Account client = clientsMap.get(opp.AccountId);
 				if (client != null) {
 					List<Account> doubleClients;
 					if (client.Phone != null && client.Phone.length() > 5 && !String.isEmpty(client.PersonEmail)) {
-						doubleClients = [SELECT Id, PersonEmail, Phone, OwnerId
+						doubleClients = [SELECT Id, PersonEmail, Phone, OwnerId, Owner.IsActive
 						                 FROM Account
 						                 WHERE OwnerId != :adminId
 						                 AND (PersonEmail = :client.PersonEmail OR Phone = :client.Phone)
@@ -29,49 +39,32 @@ trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 						                 AND Owner.isNoAllocation__c = false
 						                 LIMIT 1];
 					}
-					if (doubleClients.isEmpty()) {
-						List<User> clientOwners = [SELECT Id, IsActive FROM User WHERE Id = :client.OwnerId AND IsActive = true];
-						if (clientOwners.isEmpty()) client.OwnerId = adminId;
-					} else {
+					if (doubleClients.isEmpty() == false) {
 						client.OwnerId = doubleClients.get(0).OwnerId;
-						toUpdate.add(client);
+						toUpdate.put(client.Id, client);
 					}
 					if (client.OwnerId == adminId) opp.CleanOpp__c = true;
-					CustomBMAllocation allocation = new CustomBMAllocation(opp, (String) client.OwnerId);							//MEGA FAIL !!!!!!!!!!!!!!!
+					CustomBMAllocation allocation = new CustomBMAllocation(opp, (String) client.OwnerId, adminId);							//MEGA FAIL !!!!!!!!!!!!!!!
 					Id oppOwnerId = allocation.getUserForOpportunity();
-					System.debug('USER FROM ALLOCATION - ' + oppOwnerId);
 					if (oppOwnerId != null) {
 						opp.OwnerId = oppOwnerId;
 						opp.isAllocated__c = true;
-						User clientOwner = [SELECT Id, isNoAllocation__c, isActive FROM User WHERE Id = :client.OwnerId];
-						if (client.OwnerId == adminId || !clientOwner.get(0).IsActive) {
-					    	client.OwnerId = oppOwnerId;
-					    	toUpdate.add(client);
-					    }
+						if (client.OwnerId == adminId
+                                || !client.Owner.IsActive) {
+                            client.OwnerId = oppOwnerId;
+    						toUpdate.put(client.Id, client);
+                        }
 					}
 				}
 			} catch (Exception e) {}
 		}
-		if (!toUpdate.isEmpty()) update new List<Account>(toUpdate);
+		if (!toUpdate.isEmpty()) update toUpdate.values();
 
 		Map<String, String> mapOppNames = OpportunityMethod.generateAppNames(trigger.new);
 		for (Opportunity opp : trigger.new) {
 			if (mapOppNames.containsKey(opp.ActionIds__c))			opp.ActionNames__c = mapOppNames.get(opp.ActionIds__c);
 			if (opp.Debt__c <= 0 && opp.IsPartlyPassed__c == true)	opp.StageName = 'Мероприятие пройдено частично';
 			if (opp.Debt__c <= 0 && opp.IsComplete__c == true)		opp.StageName = 'Мероприятие пройдено';
-		}
-		Map<Id, List<Opportunity>> mapProductOpp = new Map<Id, List<Opportunity>>();
-		for (Opportunity opp : trigger.new) {
-			if (opp.ProductId__c != null) {
-				List<Opportunity> listO = (mapProductOpp.containsKey(opp.ProductId__c) ? mapProductOpp.get(opp.ProductId__c) : new List<Opportunity>());
-				ListO.add(opp);
-				mapProductOpp.put(opp.ProductId__c, listO);
-			}
-		}
-		for (Product2 product : [SELECT Id, AccountId__c FROM Product2 WHERE Id IN :mapProductOpp.keySet()]) {
-			for (Opportunity opp : mapProductOpp.get(product.Id)) {
-				opp.BusinessAccount__c = product.AccountId__c;
-			}
 		}
 	}
 
@@ -190,6 +183,11 @@ trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 	        }
 	    }
 		insert toInsert;																												//YEAP, MEGA FAIL AGAIN !!!!!!!!!
+
+	    BMOpportunity bmOpportunity = new BMOpportunity();
+	    for(ProductRoles__c par : ProductRoles__c.getAll().values()) {
+            bmOpportunity.createAccountRoleForInsert(trigger.new, par.ProductName__c, par.RoleNumber__c);
+        }
 	}
 
 }

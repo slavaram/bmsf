@@ -1,5 +1,7 @@
 public class ApexUtils {
 
+	private static final String ENCRYPT_KEY = 'lui0D7PX/YoN8Lm4OA1i6w=='; // DO NOT CHANGE! REFRESH USING Crypto.generateAesKey(128).
+
 	public static Type getType(String typeName) {
 		Type result;
 		try {
@@ -74,7 +76,7 @@ public class ApexUtils {
 
 	public static String dateToString(Date dateValue) {
 		String result = '';
-		if (dateValue == null) return '00.00.0000';
+		if (dateValue == null) return '01 января 1000';
 		Integer day = dateValue.day();
 		Integer month = dateValue.month();
 		Integer year = dateValue.year();
@@ -164,6 +166,20 @@ public class ApexUtils {
 			if (option.getValue() == value) return option.getLabel();
 		}
 		return null;
+	}
+
+	public static String encript(String secret) {
+		Blob key		= EncodingUtil.base64Decode(ENCRYPT_KEY);
+		Blob blobSecret	= Blob.valueOf(secret);
+		Blob encrypted	= Crypto.encrypt('AES128', key, key, blobSecret);
+		return EncodingUtil.base64Encode(encrypted);
+	}
+
+	public static String decript(String encriptedSecret) {
+		Blob key		= EncodingUtil.base64Decode(ENCRYPT_KEY);
+		Blob encripted	= EncodingUtil.base64Decode(encriptedSecret);
+		Blob decrypted	= Crypto.decrypt('AES128', key, key, encripted);
+		return decrypted.toString();
 	}
 
 }

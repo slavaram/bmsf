@@ -95,8 +95,9 @@ public class UserGroupAllocations {
 	}
 
 	private List<sObject> allocateCasesForAllManagers(List<Case> objectEntities, List<Id> members) {
-		List<sObject> result = new List<sObject>();
-		List<Id> accountIds = new List<Id>();
+		List<sObject> result		= new List<sObject>();
+		Map<Id, Account> toUpdate	= new Map<Id, Account>();
+		List<Id> accountIds			= new List<Id>();
 		for (Case cas : objectEntities) {
 			if (cas.AccountId != null) accountIds.add(cas.AccountId);
 		}
@@ -143,10 +144,15 @@ public class UserGroupAllocations {
 					}
 				}
 				managerCaseNumber.put(ownerId, lowerNumber + 1);
+				if (cas.AccountId != null) {
+					Account acc = new Account(Id = cas.AccountId, OwnerId = ownerId);
+					toUpdate.put(acc.Id, acc);
+				}
 				cas.OwnerId = ownerId;
 				result.add(cas);
 			}
 		}
+		update toUpdate.values();
 		return result;
 	}
 

@@ -1,22 +1,20 @@
-@RestResource(urlMapping='/RESTAccount/*')
+@RestResource(urlMapping='/restme/*')
 global with sharing class TestREST {
 
 	@HttpGet
-	global static void createAccount() {
-		RestRequest request = RestContext.request;
-		String accountName = request.params.get('code');
-		String accountEmail = request.params.get('state');
-		Case cas = new Case(Subject = accountName, Description = accountEmail);
-		insert cas;
+	global static void doGet() {
+		RestRequest req		= RestContext.request;
+		RestResponse res	= RestContext.response;
+		JSONParser parser	= JSON.createParser(EncodingUtil.base64Decode(req.requestBody.get()));
+		
+		
 	}
 
 	@HttpPost
-	global static void createAccount2(String code, String state) {
-		RestRequest request = RestContext.request;
-		String accountName = request.params.get('code');
-		String accountEmail = request.params.get('state');
-		Case cas = new Case(Subject = accountName, Description = accountEmail);
-		insert cas;
+	global static void doPost() {
+		RestRequest req		= RestContext.request;
+		RestResponse res	= RestContext.response;
+		
 	}
 
 }

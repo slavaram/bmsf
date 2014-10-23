@@ -63,7 +63,7 @@ public with sharing class NewOpportunityController {
             if(oppId != null) {
                 this.opp = [select  id, name, AccountId, Amount__c, SendEmail__c, ProductId__c, ActionIds__c, Source__c, isComplete__c, Discount__c,
                                     FromSite__c, AmountWithDiscount__c, SummOfPayments__c, CreditConditions__c,
-                                    BusinessAccount__c, NumberOfPayments__c, EndDateOfPayment__c, StartDateOfPayment__c,
+                                    NumberOfPayments__c, EndDateOfPayment__c, StartDateOfPayment__c,
                                     StageName, ReasonRefusal__c,  Amount, Description, CloseDate
                                     from Opportunity
                                     where id = :oppId];

@@ -1,4 +1,10 @@
-//Database.executeBatch(new BatchJob('select id, OwnerId from Account where Owner.Profile.Id = \'00eb0000000Qbbz\' and LastModifiedDate >= 2014-09-30T00:00:00Z'), 1000);
+List<Task> tasks = [SELECT Id, ActivityDateTime__c FROM Task WHERE Owner.Name LIKE '%амазанов%' AND ActivityDateTime__c < :System.now() LIMIT 10];
+for (Task tas : tasks) {
+	DateTime newTime = System.now();
+	newTime = newTime.addMinutes(Integer.valueOf(Math.random()*100));
+	tas.ActivityDateTime__c = newTime;
+}
+update tasks;
 
 
 
@@ -17,9 +23,7 @@
 
 
 
-
-
-
-/*Opportunity oppp = [SELECT Id, Description FROM Opportunity WHERE Id = '006b0000009Tp23'].get(0);
-oppp.Description = message;
-update oppp;*/
+/*
+Case cas = [SELECT Id, Description FROM Case WHERE Id = '50011000003Pk5L'].get(0);
+cas.Description = str;
+update cas;*/

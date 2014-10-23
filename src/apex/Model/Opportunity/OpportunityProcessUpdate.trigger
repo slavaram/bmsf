@@ -1,28 +1,15 @@
 trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 
-<<<<<<< HEAD
-=======
+	BMOpportunity bmOpportunity = new BMOpportunity();
+
 	if (trigger.isBefore) {
-		new BMOpportunity().calculateDiscount(trigger.new);
+		bmOpportunity.calculateDiscount(trigger.new);
 
 		Map<String, String> mapOppNames = OpportunityMethod.generateAppNames(trigger.new);
 		for (Opportunity opp : trigger.new) {
 			if (mapOppNames.containsKey(opp.ActionIds__c))			opp.ActionNames__c = mapOppNames.get(opp.ActionIds__c);
 			if (opp.Debt__c <= 0 && opp.IsPartlyPassed__c == true)	opp.StageName = 'Мероприятие пройдено частично';
 			if (opp.Debt__c <= 0 && opp.IsComplete__c == true)		opp.StageName = 'Мероприятие пройдено';
-		}
-		Map<Id, List<Opportunity>> mapProductOpp = new Map<Id, List<Opportunity>>();
-		for (Opportunity opp : trigger.new) {
-			if (opp.ProductId__c != null) {
-				List<Opportunity> listO = (mapProductOpp.containsKey(opp.ProductId__c) ? mapProductOpp.get(opp.ProductId__c) : new List<Opportunity>());
-				ListO.add(opp);
-				mapProductOpp.put(opp.ProductId__c, listO);
-			}
-		}
-		for (Product2 product : [SELECT Id, AccountId__c FROM Product2 WHERE Id IN :mapProductOpp.keySet()]) {
-			for (Opportunity opp : mapProductOpp.get(product.Id)) {
-				opp.BusinessAccount__c = product.AccountId__c;
-			}
 		}
 	}
 
@@ -69,6 +56,10 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 		        		OR OpportunityId__r.StageName = 'Оплачено'
 		        		OR OpportunityId__r.StageName = 'Частичная оплата')
 		        ];
+
+        for(ProductRoles__c par : ProductRoles__c.getAll().values()) {
+            bmOpportunity.createAccountRoleForUpdate(activities, par.ProductName__c, par.RoleNumber__c);
+        }
 
 		List<StepPayment__c> paymentSteps = new List<StepPayment__c>();
 		for (Opportunity oldOpp : trigger.old) {
@@ -200,5 +191,4 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 	    }
 	}
 
->>>>>>> opp_issue
 }

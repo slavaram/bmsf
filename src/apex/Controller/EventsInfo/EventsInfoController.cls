@@ -44,7 +44,7 @@ public class EventsInfoController {
 		ALL_PRODUCT_GROUP_IDS.add('a0Lb0000002ZByQEAW'); // Игра
 		ALL_PRODUCT_GROUP_IDS.add('a0Lb0000006B7obEAC'); // Игра. ИК
 		ALL_PRODUCT_GROUP_IDS.add('a0Lb0000006A4YtEAK'); // ИК для женищин
-		ALL_PRODUCT_GROUP_IDS.add('a0Lb0000002Wa7bEAC'); // Интенсив, Коучинг
+		ALL_PRODUCT_GROUP_IDS.add('a0Lb0000002Wa7bEAC'); // Бизнес старт
 		ALL_PRODUCT_GROUP_IDS.add('a0Lb0000006A9akEAC'); // Карта UNLIM
 		ALL_PRODUCT_GROUP_IDS.add('a0Lb0000003jxsKEAQ'); // Карты
 		ALL_PRODUCT_GROUP_IDS.add('a0Lb0000005Ga6NEAS'); // Кураторство

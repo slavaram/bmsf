@@ -50,15 +50,14 @@ public class BM_CampaignClientsManager {
 			validationResults.errorMessages.add(String.format(ERROR_INCORRECT_USER_ROLE, new String[] {thisUser.UserRole.Name}));
 			return validationResults;
 		}
-		validationResults = BM_TaskAssignmentUtils.reserveNewTask(thisUser.Id, mDueDateOfNewTask);
-		return validationResults;
+		return BM_TaskAssignmentUtils.reserveNewTask(thisUser.Id, mDueDateOfNewTask);
 	}
 
 	private CampaignMember findSuitableCampaignMember() {
 		CampaignMember suitableCampaignMember = findCampaignMemberForOwnClient();
-		if (thisUser.isSuperGroupForCampaign__c == true)		suitableCampaignMember = findCampaignMemberForSuperGroup();
-		if (suitableCampaignMember == null)						suitableCampaignMember = findCampaignMemberForFreeClient();
-		if (suitableCampaignMember == null)						suitableCampaignMember = findCampaignMemberForTakenClient();
+		if (thisUser.isSuperGroupForCampaign__c == true)	suitableCampaignMember = findCampaignMemberForSuperGroup();
+		if (suitableCampaignMember == null)					suitableCampaignMember = findCampaignMemberForFreeClient();
+		if (suitableCampaignMember == null)					suitableCampaignMember = findCampaignMemberForTakenClient();
 		return suitableCampaignMember;
 	}
 
@@ -70,157 +69,57 @@ public class BM_CampaignClientsManager {
 
 	private static CampaignMember findCampaignMemberByFilter(BM_CampaignMemberDAO.Filter filter) {
 		List<CampaignMember> campaignMembers = BM_CampaignMemberDAO.getMembersByFilter(BM_CampaignMemberDAO.KEY_FIELDS_WITH_CONTACT_INFO, filter);
-		if (!campaignMembers.isEmpty()) return campaignMembers.get((Integer)(Math.random()*campaignMembers.size()));
-		return null;
+		return (campaignMembers.isEmpty()) ? null : campaignMembers.get((Integer)(Math.random()*campaignMembers.size())));
 	}
 
-	private void clearTemporaryState() {
-		mObjectsForInsert.clear();
-		mObjectsForUpdate.clear();
-	}
-	
-	private void assignFreeClientToUser(CampaignMember campaignMemberForFreeClient)
-	{
-		//update an owner of the contact who is related with campaign member
-		if(this.thisUser.isSuperGroupForCampaign__c == false)
-		{
-			Contact freeClient = new Contact();
-			freeClient.Id = campaignMemberForFreeClient.ContactId;
-			freeClient.OwnerId = this.thisUser.Id;
-			this.mObjectsForUpdate.add(freeClient);
-		}
-	}
-
-	private CampaignMember findCampaignMemberForSuperGroup()
-	{
+	private CampaignMember findCampaignMemberForSuperGroup() {
 		BM_CampaignMemberDAO.Filter filter = createCampaignMembersFilter(thisUser.isSuperGroupForCampaign__c);
-		List<User> ownersUsers = [SELECT Id from User where isActive = true and ManagerId = :this.thisUser.Id];
-		String[] ownIds = new List<String>();
-
-		for(User us: ownersUsers)
-		{
+		List<User> ownersUsers = [SELECT Id FROM User WHERE isActive = true AND ManagerId = :thisUser.Id];
+		List<String> ownIds = new List<String>();
+		for (User us: ownersUsers) {
 			ownIds.add(us.Id);
 		}
-
 		filter.accountOwnersIds = ownIds;
-
 		return findCampaignMemberByFilter(filter);
 	}
 
-	private CampaignMember findCampaignMemberForFreeClient()
-	{
-		//STEP #1: read parameters from custom settings and check them
-		//read Id of an unknown user from custom settings
+	private CampaignMember findCampaignMemberForFreeClient() {
 		String unknownClientOwnerId = BM_Settings.getUnknownClientOwnerId();
-		//if the value can't be read then the method should be stopped
-		if (String.isBlank(unknownClientOwnerId))
-		{
-			return null;
-		}
-		
-		//STEP #2: initialize the filter to find suitable campaign member
+		if (String.isBlank(unknownClientOwnerId)) return null;
 		BM_CampaignMemberDAO.Filter filter = createCampaignMembersFilter(thisUser.isSuperGroupForCampaign__c);
-		//accounts should be managed by the user which is considered as unknown owner
 		List<User> deActiveUsers = [SELECT id from User where isActive = false];
 		List<String> unknownClientOwnerIds = new List<String>();
-		for(User user: deActiveUsers)
-		{
+		for (User user: deActiveUsers) {
 			unknownClientOwnerIds.add(user.Id);
 		}
 		unknownClientOwnerIds.add(unknownClientOwnerId);
 		filter.accountOwnersIds = unknownClientOwnerIds;
-		
-		//STEP #3: get campaign members by the filter
 		CampaignMember campaignMemberForFreeClient = findCampaignMemberByFilter(filter);
-		if (campaignMemberForFreeClient != null)
-		{
-			//if a free client has been found then we assign him to the processed user
-			this.assignFreeClientToUser(campaignMemberForFreeClient);
+		if (campaignMemberForFreeClient != null) {
+			assignFreeClientToUser(campaignMemberForFreeClient);
 		}
 		return campaignMemberForFreeClient;
 	}
-	
-	//'taken client' means 'a client who belongs to another owner' 
-	private CampaignMember findCampaignMemberForTakenClient()
-	{
-		//STEP #1: this feature can be disabled in custom settings
-		if (!BM_Settings.userCanManageClientOfAnotherOwner())
-		{
-			return null;
-		}
-		
-		//STEP #2: initialize the filter to find suitable campaign member (we don't need to
-		//set any other specific subfilters)
-		BM_CampaignMemberDAO.Filter filter = createCampaignMembersFilter(this.thisUser.isSuperGroupForCampaign__c);
-		
-		//STEP #3: get campaign members by the filter
+
+	private CampaignMember findCampaignMemberForTakenClient() {
+		if (!BM_Settings.userCanManageClientOfAnotherOwner()) return null;
+		BM_CampaignMemberDAO.Filter filter = createCampaignMembersFilter(thisUser.isSuperGroupForCampaign__c);
 		return findCampaignMemberByFilter(filter);
 	}
 
-	private void assignNewCallTask(CampaignMember campaignMember)
-	{
-		//STEP #1: create a new task
+	private void assignNewCallTask(CampaignMember campaignMember) {
 		Task newTask = new Task();
-		//set references to connect the task with the campaign and the client
 		newTask.WhatId = campaignMember.CampaignId;
 		newTask.WhoId = campaignMember.ContactId;
 		newTask.CampaignId__c = campaignMember.CampaignId;
-		//set a name for the task
 		newTask.Subject = NEW_TASK_SUBJECT;
 		newTask.isGetNewTask__c = true;
-		//synchronize priorities of the campaign and the task if it's possible
-		if (BM_Priority.TASK_PRIORITIES.contains(campaignMember.Campaign.Priority__c))
-		{
-			newTask.Priority = campaignMember.Campaign.Priority__c;
-		}
-		
-		//set parameters which depend on the current state of this class
-		newTask.ActivityDate = this.mDueDateOfNewTask;
-		newTask.OwnerId = this.thisUser.Id;
-		
-		//add a new created task into the list of objects for insert
-		this.mObjectsForInsert.add(newTask);
-		
-		//STEP #2: modify the campaign member
+		if (BM_Priority.TASK_PRIORITIES.contains(campaignMember.Campaign.Priority__c)) newTask.Priority = campaignMember.Campaign.Priority__c;
+		newTask.ActivityDate = mDueDateOfNewTask;
+		newTask.OwnerId = thisUser.Id;
+		mObjectsForInsert.add(newTask);
 		campaignMember.IsCallTaskCreated__c = true;
-		this.mObjectsForUpdate.add(campaignMember);
-	}
-	
-	private BM_OperationResults commitDBChanges()
-	{
-		//all DML operations will be performed as a single logical transaction
-		//1) start the transaction
-		SavePoint transactionStart = Database.setSavepoint();
-		
-		//2) insert new objects
-		Boolean isInsertSuccessful = BM_SoqlUtils.tryPerformDmlOperation(
-			BM_SoqlUtils.DmlOperation.Inserting, this.mObjectsForInsert);
-		
-		//3) update existing objects
-		Boolean isUpdateSuccessful = false;
-		if (isInsertSuccessful)
-		{
-			isUpdateSuccessful = BM_SoqlUtils.tryPerformDmlOperation(
-				BM_SoqlUtils.DmlOperation.Updating, this.mObjectsForUpdate);
-		}
-		
-		//4) generate final results
-		BM_OperationResults results;
-		if (isInsertSuccessful && isUpdateSuccessful)
-		{
-			//generate positive results
-			results = new BM_OperationResults(true);
-		}
-		else
-		{
-			//roll back the transaction if at least one operation failed
-			Database.rollback(transactionStart);
-			//generate negative results
-			results = new BM_OperationResults(false);
-			results.errorMessages.add(ERROR_INTERNAL);
-		}
-		
-		return results;
+		mObjectsForUpdate.add(campaignMember);
 	}
 
 	private static BM_CampaignMemberDAO.Filter createCampaignMembersFilter(Boolean isSuperGroup) {
@@ -232,6 +131,36 @@ public class BM_CampaignClientsManager {
 		filter.sortingOrder					= BM_SoqlUtils.SortingOrder.Ascending;
 		filter.limitOfResultSet				= 100;
 		filter.isSuperGroup					= isSuperGroup;
+	}
+
+	private void assignFreeClientToUser(CampaignMember campaignMemberForFreeClient)	{
+		if (thisUser.isSuperGroupForCampaign__c == false) {
+			Contact freeClient	= new Contact();
+			freeClient.Id		= campaignMemberForFreeClient.ContactId;
+			freeClient.OwnerId	= thisUser.Id;
+			mObjectsForUpdate.add(freeClient);
+		}
+	}
+
+	private void clearTemporaryState() {
+		mObjectsForInsert.clear();
+		mObjectsForUpdate.clear();
+	}
+
+	private BM_OperationResults commitDBChanges() {
+		SavePoint transactionStart = Database.setSavepoint();
+		Boolean isInsertSuccessful = BM_SoqlUtils.tryPerformDmlOperation(BM_SoqlUtils.DmlOperation.Inserting, this.mObjectsForInsert);
+		Boolean isUpdateSuccessful = false;
+		if (isInsertSuccessful)	isUpdateSuccessful = BM_SoqlUtils.tryPerformDmlOperation(BM_SoqlUtils.DmlOperation.Updating, this.mObjectsForUpdate);
+		BM_OperationResults results;
+		if (isInsertSuccessful && isUpdateSuccessful) {
+			results = new BM_OperationResults(true);
+		} else {
+			Database.rollback(transactionStart);
+			results = new BM_OperationResults(false);
+			results.errorMessages.add(ERROR_INTERNAL);
+		}
+		return results;
 	}
 
 }

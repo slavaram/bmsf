@@ -129,21 +129,25 @@ public class UserGroupAllocations {
 			for (Id manager : members) {
 				if (managerCaseNumber.get(manager) == null) managerCaseNumber.put(manager, 0);
 			}
+			Map<Id, Integer> managerCaseNumberShuffled = new Map<Id, Integer>();
+			for (Id managerId : ApexUtils.shuffle(new List<Id>(managerCaseNumber.keySet()))) {
+				managerCaseNumberShuffled.put(managerId, managerCaseNumber.get(managerId));
+			}
 			for (Case cas : toAllocate) {
 				Integer lowerNumber;
 				Id ownerId;
-				for (Id manager : managerCaseNumber.keySet()) {
+				for (Id manager : managerCaseNumberShuffled.keySet()) {
 					if (lowerNumber == null) {
-						lowerNumber = managerCaseNumber.get(manager);
+						lowerNumber = managerCaseNumberShuffled.get(manager);
 						ownerId = manager;
 					} else {
-						if (lowerNumber > managerCaseNumber.get(manager)) {
-							lowerNumber = managerCaseNumber.get(manager);
+						if (lowerNumber > managerCaseNumberShuffled.get(manager)) {
+							lowerNumber = managerCaseNumberShuffled.get(manager);
 							ownerId = manager;
 						}
 					}
 				}
-				managerCaseNumber.put(ownerId, lowerNumber + 1);
+				managerCaseNumberShuffled.put(ownerId, lowerNumber + 1);
 				if (cas.AccountId != null) {
 					Account acc = new Account(Id = cas.AccountId, OwnerId = ownerId);
 					toUpdate.put(acc.Id, acc);

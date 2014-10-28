@@ -2,27 +2,6 @@ public class ApexUtils {
 
 	private static final String ENCRYPT_KEY = 'lui0D7PX/YoN8Lm4OA1i6w=='; // DO NOT CHANGE! REFRESH USING Crypto.generateAesKey(128).
 
-	public static Type getType(String typeName) {
-		Type result;
-		try {
-			result = Type.forName(typeName);
-		} catch (Exception e) {
-			result = null;
-			System.debug(LoggingLevel.ERROR, 'Exception occurred in ApexUtils.getType: ' + e.getMessage());
-		}
-		return result;
-	}
-
-	public static List<Object> createEmptyListByTypeName(String typeName) {
-		String fullNameOfListType = 'List<' + typeName + '>';
-		Type listType = BM_ApexTypeUtils.getType(fullNameOfListType);
-		List<Object> resultList = null;
-		if (listType != null) {
-			resultList = (List<Object>) listType.newInstance();
-		}
-		return resultList;
-	}
-
 	public static String getMonthNameRus(Integer month, Boolean isNominative) {
 		if (month == null || isNominative == null) return null;
 		if (month < 1 || month > 12) return null;
@@ -87,18 +66,6 @@ public class ApexUtils {
 		return result;
 	}
 
-	public static List<SelectOption> getObjectPickListFieldValues(SObject obj, String field) {
-		List<SelectOption> options = new List<SelectOption>();
-		Schema.sObjectType objectType = obj.getSObjectType();
-		Schema.DescribeSObjectResult objectDescribe = objectType.getDescribe();
-		Map<String, Schema.SObjectField> fieldMap = objectDescribe.fields.getMap();
-		List<Schema.PicklistEntry> values = fieldMap.get(field).getDescribe().getPickListValues();
-		for (Schema.PicklistEntry a : values) { 
-			options.add(new SelectOption(a.getLabel(), a.getValue())); 
-		}
-		return options;
-	}
-
 	public static Boolean isEqualStrings(String str1, String str2) {
 		if (str1 == null) {
 			if (str2 == null) {
@@ -159,7 +126,7 @@ public class ApexUtils {
 			}
 		}
 	}
-	
+
 	public static String getLabel(List<SelectOption> options, String value) {
 		if (options == null || value == null || options.size() == 0) return null;
 		for (SelectOption option : options) {
@@ -180,6 +147,28 @@ public class ApexUtils {
 		Blob encripted	= EncodingUtil.base64Decode(encriptedSecret);
 		Blob decrypted	= Crypto.decrypt('AES128', key, key, encripted);
 		return decrypted.toString();
+	}
+
+	public static List<sObject> shuffle(List<sObject> toShuffle) {
+		List<sObject> result	= new List<sObject>();
+		List<sObject> temp		= new List<sObject>(toShuffle);
+		for (Integer lim = temp.size(); lim > 0; lim--) {
+			Integer index = Integer.valueOf(Math.floor(Math.random()*lim));
+			result.add(temp.get(index));
+			temp.remove(index);
+		}
+		return result;
+	}
+
+	public static List<Id> shuffle(List<Id> toShuffle) {
+		List<Id> result	= new List<Id>();
+		List<Id> temp	= new List<Id>(toShuffle);
+		for (Integer lim = temp.size(); lim > 0; lim--) {
+			Integer index = Integer.valueOf(Math.floor(Math.random()*lim));
+			result.add(temp.get(index));
+			temp.remove(index);
+		}
+		return result;
 	}
 
 }

@@ -72,8 +72,8 @@ public class RegisterBookController {
 		mUsers = new List<SelectOption>();
 		mRegisters = new List<DailyAttendance__c>();
 		mToday = System.now().day() + ' ' + ApexUtils.getMonthNameRus(System.now().month(), false) + ' ' + System.now().year();
-		mRegisterValues = ApexUtils.getObjectPickListFieldValues(new DailyAttendance__c(), 'Register__c');
-		mReasonValues = ApexUtils.getObjectPickListFieldValues(new DailyAttendance__c(), 'Reason__c');
+		mRegisterValues = SObjectUtils.getObjectPickListFieldValues(new DailyAttendance__c(), 'Register__c');
+		mReasonValues = SObjectUtils.getObjectPickListFieldValues(new DailyAttendance__c(), 'Reason__c');
 		mRegistrationDates = new List<SelectOption>();
 		mRows = new List<RowElement>();
 		mHeaders = new List<HeaderElement>();

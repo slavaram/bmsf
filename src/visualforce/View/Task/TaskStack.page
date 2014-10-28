@@ -138,13 +138,14 @@
 						<apex:column styleClass="{!IF(record.delta > 15, 'record_future', IF(record.delta < -15, 'record_past', 'record_now'))}" rendered="{!record.status != 'Выполняется'}" />
 						<apex:column styleClass="record_in_progress" rendered="{!record.status = 'Выполняется'}" />
 						<apex:column >
-							<apex:outputLink value="/{!record.Id}" target="_parent"><apex:outputText value="{!record.subject}" /></apex:outputLink>
+							<apex:outputLink value="/{!record.taskId}" target="_parent"><apex:outputText value="{!record.subject}" /></apex:outputLink>
 						</apex:column>
 						<apex:column styleClass="width100">
 							<apex:outputText value="Кампания" rendered="{!record.relatedObjectType = 'Campaign'}" />
 							<apex:outputText value="Обращение" rendered="{!record.relatedObjectType = 'Case'}" />
 							<apex:outputText value="Заявка" rendered="{!record.relatedObjectType = 'Opportunity'}" />
 							<apex:outputText value="Задача" rendered="{!record.relatedObjectType = 'Task'}" />
+							<apex:outputText value="Рекомендация" rendered="{!record.relatedObjectType = 'PossibleAccount__c'}" />
 						</apex:column>
 						<apex:column styleClass="width250">
 							<apex:outputLink value="/{!record.WhatId}" target="_parent" rendered="{!record.relatedObjectType != null}"><apex:outputText value="{!record.relatedObjectName}" /></apex:outputLink>
@@ -177,10 +178,6 @@
 
 		function onloadWork() {
 			var mask = document.getElementById('TheMask');
-			mask.style.width = j$('[id$=TheBlock]').width() + 'px';
-			mask.style.height = j$('[id$=TheBlock]').height() + 'px';
-			mask.style.top = j$('[id$=TheBlock]').offset().top + 'px';
-			mask.style.left = j$('[id$=TheBlock]').offset().left + 'px';
 			var d = new Date();
 			lastProgress = d.getTime();
 			setInterval("progress()", 49);
@@ -188,6 +185,11 @@
 
 		function showMask() {
 			stop = true;
+			var mask = document.getElementById('TheMask');
+			mask.style.width = j$('[id$=TheBlock]').width() + 'px';
+			mask.style.height = j$('[id$=TheBlock]').height() + 'px';
+			mask.style.top = j$('[id$=TheBlock]').offset().top + 'px';
+			mask.style.left = j$('[id$=TheBlock]').offset().left + 'px';
  			document.getElementById('TheMask').style.zIndex = '9999';
  		}
 
@@ -203,7 +205,7 @@
 			var currentProgress = d.getTime();
 			var progress = (currentProgress - lastProgress)/600;
 			if (progress < 100 && !stop) {
-				document.getElementById('ProgeressBar').style.width = progress + '%';
+				j$('#ProgeressBar').css('width', progress + '%');
 			} else {
 				stop = true;
 			}

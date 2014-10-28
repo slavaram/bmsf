@@ -1,6 +1,7 @@
 public with sharing class BM_TaskControllerExtension {
 
-	public transient String		taskCreationErrorMessage {get; private set;}
+	public transient String taskCreationErrorMessage {get; private set;}
+
 	private static final String ERROR_NEW_TASK_NOT_ASSIGNED = 'Задача не была назначена, потому что {0}';
 
 	public BM_TaskControllerExtension(ApexPages.StandardController standardController) {

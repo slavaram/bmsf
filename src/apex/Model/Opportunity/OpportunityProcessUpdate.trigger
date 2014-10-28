@@ -14,22 +14,24 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 	}
 
 	if (trigger.isAfter) {
-		OpportunityExcecutor oppExcecutor = new OpportunityExcecutor();
-		oppExcecutor.deleteNonActualActivitesBeforeUpdate(trigger.newMap, trigger.oldMap);
-
-		List<ApplicationsActivities__c> toInsert = new List<ApplicationsActivities__c>();
-		for (Opportunity opp : trigger.new) {
-			Opportunity oppOld = trigger.oldMap.get(opp.Id);
-			if (opp.ActionIds__c != oppOld.ActionIds__c) {
-				Set<Id> actionIds = OpportunityMethod.oppToActionIdSet(opp);
-				Set<Id> actionIdsOld = OpportunityMethod.oppToActionIdSet(oppOld);
-				actionIds.removeAll(actionIdsOld);
-				for (Id actId : actionIds) {
-					toInsert.add(new ApplicationsActivities__c(ActionID__c = actId, OpportunityId__c = opp.Id));
+		if (!OpportunityMethod.DONE) {
+			OpportunityExcecutor oppExcecutor = new OpportunityExcecutor();
+			oppExcecutor.deleteNonActualActivitesBeforeUpdate(trigger.newMap, trigger.oldMap);
+	
+			List<ApplicationsActivities__c> toInsert = new List<ApplicationsActivities__c>();
+			for (Opportunity opp : trigger.new) {
+				Opportunity oppOld = trigger.oldMap.get(opp.Id);
+				if (opp.ActionIds__c != oppOld.ActionIds__c) {
+					Set<Id> actionIds = OpportunityMethod.oppToActionIdSet(opp);
+					Set<Id> actionIdsOld = OpportunityMethod.oppToActionIdSet(oppOld);
+					actionIds.removeAll(actionIdsOld);
+					for (Id actId : actionIds) {
+						toInsert.add(new ApplicationsActivities__c(ActionID__c = actId, OpportunityId__c = opp.Id));
+					}
 				}
 			}
+			insert toInsert;
 		}
-		insert toInsert;
 
 		List<id> listOpportunityId = new List<id>();
 		for (Opportunity opp : trigger.new) {

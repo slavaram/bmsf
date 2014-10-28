@@ -168,6 +168,7 @@ trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 	            }
 			}
 			insert oliToInsert;																											//ONE MORE MEGA FAIL !!!!!!!!!
+			OpportunityMethod.DONE = true;
 	    }
 
 		List<Payment__c> newPayments = new List<Payment__c>();

@@ -1,5 +1,7 @@
 global class OpportunityMethod {
 
+	public static Boolean DONE = false;
+
 	private static Map<Id, Opportunity> alreadyOInBatchComing = new Map<Id, Opportunity>();
 
 	public static Map<String, String> generateAppNames(list<Opportunity> opportunities) {

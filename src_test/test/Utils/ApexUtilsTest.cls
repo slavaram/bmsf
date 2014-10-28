@@ -1,15 +1,6 @@
 @isTest
 class ApexUtilsTest {
 
-	static testmethod void getTypeTest() {
-		System.assertEquals('User', ApexUtils.getType('User').getName());
-		System.assertEquals(null, ApexUtils.getType(null));
-	}
-
-	static testmethod void createEmptyListByTypeNameTest() {
-		System.assertEquals(0, ApexUtils.createEmptyListByTypeName('User').size());
-	}
-
 	static testmethod void getMonthNameRusTest() {
 		System.assertEquals(null, ApexUtils.getMonthNameRus(null, true));
 		System.assertEquals(null, ApexUtils.getMonthNameRus(200, true));
@@ -39,10 +30,6 @@ class ApexUtilsTest {
 		System.assertEquals('21.08.2014', ApexUtils.dateToString(Date.valueOf('2014-08-21')));
 	}
 
-	static testmethod void getObjectPickListFieldValuesTest() {
-		System.assertNotEquals(null, ApexUtils.getObjectPickListFieldValues(new Opportunity(), 'StageName'));
-	}
-
 	static testmethod void isEqualStringsTest() {
 		System.assertEquals(false, ApexUtils.isEqualStrings('string', null));
 		System.assertEquals(false, ApexUtils.isEqualStrings(null, 'string'));
@@ -68,6 +55,37 @@ class ApexUtilsTest {
 		options.add(new SelectOption('valueTwo', 'labelTwo'));
 		System.assertEquals('labelTwo', ApexUtils.getLabel(options, 'valueTwo'));
 		System.assertEquals(null, ApexUtils.getLabel(options, 'valueThree'));
+	}
+
+	static testmethod void shuffleTest() {
+		List<Case> objectsToShuffle = new List<Case>();
+		objectsToShuffle.add(new Case(Subject = 'TestCase0'));
+		objectsToShuffle.add(new Case(Subject = 'TestCase1'));
+		objectsToShuffle.add(new Case(Subject = 'TestCase2'));
+		objectsToShuffle.add(new Case(Subject = 'TestCase3'));
+		objectsToShuffle.add(new Case(Subject = 'TestCase4'));
+		List<Case> shuffledObjects = (List<Case>) ApexUtils.shuffle(objectsToShuffle);
+		System.assert(!(objectsToShuffle.get(0).Subject == shuffledObjects.get(0).Subject
+				&& objectsToShuffle.get(1).Subject == shuffledObjects.get(1).Subject
+				&& objectsToShuffle.get(2).Subject == shuffledObjects.get(2).Subject
+				&& objectsToShuffle.get(3).Subject == shuffledObjects.get(3).Subject
+				&& objectsToShuffle.get(4).Subject == shuffledObjects.get(4).Subject));
+		insert objectsToShuffle;
+		List<Id> idsToShuffle = new List<Id>();
+		for (Case cas : objectsToShuffle) {
+			idsToShuffle.add(cas.Id);
+		}
+		List<Id> shuffledIds = ApexUtils.shuffle(idsToShuffle);
+		System.assert(!(idsToShuffle.get(0) == shuffledIds.get(0)
+				&& idsToShuffle.get(1) == shuffledIds.get(1)
+				&& idsToShuffle.get(2) == shuffledIds.get(2)
+				&& idsToShuffle.get(3) == shuffledIds.get(3)
+				&& idsToShuffle.get(4) == shuffledIds.get(4)));
+	}
+
+	static testmethod void criptoTest() {
+		String secret = 'I love Madonna';
+		System.assertEquals(secret, ApexUtils.decript(ApexUtils.encript(secret)));
 	}
 
 }

@@ -77,17 +77,14 @@ global class Schedulable_MGCardsManager implements Schedulable {
 		attachTasksForManagers(); // 3 soql queries
 	}
 
-
 	private void createNewCards() {
 		List<Card> cards = new List<Card>();
-
-		List<Opportunity> opps = [SELECT Id, DateOfPayment__c, ActionIds__c, ProductId__c, Account.Id, Account.PersonEmail
+		List<Opportunity> opps = [SELECT Id, DateOfPayment__c, ActionIds__c, ProductId__c, AccountId, Account.PersonEmail
 								  FROM Opportunity
 								  WHERE ProductId__c IN :Schedulable_MGCardsManager.PRODUCT_IDS
 								  AND StageName = 'Оплачено'
 								  AND LastModifiedDate >= YESTERDAY
 								  AND ActionIds__c != NULL];
-
 		for (Opportunity opp : opps) {
 			// if ([Sandbox] || [Production])
 			if (opp.ProductId__c == '01t11000000xPCaAAM' || opp.ProductId__c == '01tb0000002GWtuAAG') {
@@ -122,11 +119,9 @@ global class Schedulable_MGCardsManager implements Schedulable {
 				cards.add(card);
 			}
 		}
-
 		List<Action__c> allActionIds = [SELECT Id, ParentId__r.Name
 										FROM Action__c
 										WHERE ParentId__c IN :Schedulable_MGCardsManager.ACTION_IDS];
-
 		for (Card card : cards) {
 			for (String actionId : card.actionIds) {
 				String cardType = null;
@@ -150,7 +145,6 @@ global class Schedulable_MGCardsManager implements Schedulable {
 				}
 			}
 		}
-
 		List<Card> correctCards = new List<Card>();
 		List<String> actionIds = new List<String>();
 		List<String> opportunityIds = new List<String>();
@@ -163,7 +157,6 @@ global class Schedulable_MGCardsManager implements Schedulable {
 				clientIds.add(card.clientId);
 			}
 		}
-
 		List<ApplicationsActivities__c> applicationsActivities = [SELECT Id, ActionID__c, OpportunityId__c
 																  FROM ApplicationsActivities__c
 																  WHERE ActionID__c = :actionIds
@@ -177,7 +170,6 @@ global class Schedulable_MGCardsManager implements Schedulable {
 				}
 			}
 		}
-
 		List<MasterGroupCards__c> doubleCards = [SELECT Id, Client__c, ApplicationsActivitiesId__c, CardType__c
 												 FROM MasterGroupCards__c
 												 WHERE Client__c IN :clientIds
@@ -194,7 +186,6 @@ global class Schedulable_MGCardsManager implements Schedulable {
 				}
 			}
 		}
-
 		List<Action__c> actions = [SELECT Id, CityId__c
 								   FROM Action__c
 								   WHERE Id IN :actionIds];
@@ -206,7 +197,6 @@ global class Schedulable_MGCardsManager implements Schedulable {
 				}
 			}
 		}
-
 		List<MasterGroupCards__c> toInsert = new List<MasterGroupCards__c>();
 		for (Card card : correctCards) {
 			String cardTypeFull = card.cardType + ' карта';
@@ -223,7 +213,6 @@ global class Schedulable_MGCardsManager implements Schedulable {
 												 ClientEmail__c = card.clientEmail,
 												 IsMasterGroupCard__c = true));
 		}
-
 		insert toInsert;
 	}
 

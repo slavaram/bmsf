@@ -1,14 +1,10 @@
-List<Task> tasks = [SELECT Id, ActivityDateTime__c FROM Task WHERE Owner.Name LIKE '%амазанов%' AND ActivityDateTime__c < :System.now() LIMIT 10];
+List<Task> tasks = [SELECT Id, ActivityDateTime__c FROM Task WHERE OwnerId = '005b0000000PEwkAAG'];
 for (Task tas : tasks) {
 	DateTime newTime = System.now();
 	newTime = newTime.addMinutes(Integer.valueOf(Math.random()*100));
 	tas.ActivityDateTime__c = newTime;
 }
 update tasks;
-
-
-
-
 
 
 

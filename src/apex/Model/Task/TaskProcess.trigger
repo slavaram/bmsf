@@ -1,25 +1,27 @@
 trigger TaskProcess on Task (before insert,
 							 before update) {
 
-	for (Task task: Trigger.new) {
-		if (task.WhatId != null) {
-			if (task.WhatId.getSObjectType().getDescribe().getName() == 'Case' && task.Status == 'Завершено') {
-				Case caseClose = new Case(Id = task.WhatId);
-				caseClose.Status = 'Закрыто';
-				update caseClose;
-			}
-		}
-	}
-	
-	if (trigger.isUpdate) {
-		BOTask.setWorkTime(trigger.new, trigger.old);
+	try {
+		TaskMethods.setWhoId(trigger.new);
+	} catch (Exception ex) {
+		System.debug(LoggingLevel.ERROR, ex.getMessage());
 	}
 
-	try {
-		new BOTask().setDate(trigger.new);
-		new BOTask().setWhoId(trigger.new);
-	} catch (Exception ex) {
-		System.debug(ex.getMessage());
+	if (trigger.isBefore) {
+		for (Task tas : trigger.new) {
+			if (tas.ActivityDate == null && tas.ActivityDateTime__c != null) tas.ActivityDate = (Date) tas.ActivityDateTime__c;
+		}
+	}
+
+	if (trigger.isUpdate && trigger.isBefore) {
+		for (Task tas: Trigger.new) {
+			if (tas.WhatId != null) {
+				if (tas.WhatId.getSObjectType().getDescribe().getName() == 'Case' && tas.Status == 'Завершено') {
+					Case caseClose = new Case(Id = tas.WhatId, Status = 'Закрыто');
+					update caseClose;
+				}
+			}
+		}
 	}
 
 }

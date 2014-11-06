@@ -45,10 +45,10 @@ public class BODayMember {
 	}
 
 	public BODayMember(Date theDate, String accountId) {
-		days					= getDays(theDate);
-		actionDays				= getActionDays(days.values());
-		opportunityEvents		= getOpportunityEvents(actionDays.keySet(), accountId);
-		existingDayMembers		= getExistingDayMembers();
+		days				= getDays(theDate);
+		actionDays			= getActionDays(days.values());
+		opportunityEvents	= getOpportunityEvents(actionDays.keySet(), accountId);
+		existingDayMembers	= getExistingDayMembers();
 	}
 
 	// GETTER
@@ -84,8 +84,8 @@ public class BODayMember {
 	public Map<String, ApplicationsActivities__c> getOpportunityEvents(Set<String> eventIds, String accountId) {
 		try {
 			return new Map<String, ApplicationsActivities__c>(
-					[SELECT Id, Name, OpportunityId__c, ActionID__c, ActionID__r.Name, ActionID__r.ParentId__c,
-					 	ActionID__r.CityId__c, OpportunityId__r.StageName, OpportunityId__r.Debt__c, OpportunityId__r.SeatType__c
+					[SELECT Id, Name, OpportunityId__c, ActionID__c, ActionID__r.Name, ActionID__r.ParentId__c, OpportunityId__r.ProductId__r.Name,
+					 	ActionID__r.CityId__c, OpportunityId__r.StageName, OpportunityId__r.Debt__c, OpportunityId__r.SeatType__c, OpportunityId__r.ProductId__c
 					 FROM ApplicationsActivities__c
 					 WHERE ActionID__r.ParentId__c IN :eventIds
 					 AND OpportunityId__r.AccountId = :accountId

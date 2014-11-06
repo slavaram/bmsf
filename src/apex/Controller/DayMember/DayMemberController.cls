@@ -30,10 +30,8 @@ public with sharing class DayMemberController {
 	}
 
 	{
-		dayMembers		= new Map<Id, List<BODayMember.DayMember>>();
-		isLoan			= false;
-		cardGranted		= false;
-		actSigned		= false;
+		dayMembers = new Map<Id, List<BODayMember.DayMember>>();
+		isLoan = false;
 	}
 
 	public DayMemberController(ApexPages.Standardcontroller controller) {
@@ -50,7 +48,7 @@ public with sharing class DayMemberController {
 		BODayMember dayMemberData	= new BODayMember(Date.today(), client.Id);
 		opportunityEvents			= dayMemberData.opportunityEvents.values();
 		dayMembers					= dayMemberData.getDayMemders();
-		seatType					= (opportunityEvents.isEmpty() ? ' - ' : opportunityEvents.get(0).OpportunityId__r.SeatType__c);
+		seatType					= getSeatType();
 		statusSendAllTask();
 	}
 
@@ -119,10 +117,10 @@ public with sharing class DayMemberController {
 		}
 		for (List<BODayMember.DayMember> items : dayMembers.values()) {
 			for (BODayMember.DayMember item : items) {
-				if (item.member.Id != null ) {
-					if (!item.member.IsPassed__c && !item.readOnly) toDelete.add(item.member);
+				if (item.Member.Id != null ) {
+					if (!item.Member.IsPassed__c) toDelete.add(item.Member);
 				} else {
-					if (item.member.IsPassed__c && !item.readOnly) toInsert.add(item.member);
+					if (item.Member.IsPassed__c) toInsert.add(item.Member);
 				}
 			}
 		}
@@ -145,6 +143,16 @@ public with sharing class DayMemberController {
 		res = temp + res;
 		res = '%ОП02' + res + '%';
 		return res;
+	}
+
+	// FAIL DELETE AS FAST AS YOU CAN
+	private String getSeatType() {
+		if (opportunityEvents.isEmpty()) return '-';
+		if (opportunityEvents.get(0).OpportunityId__r.ProductId__c == '01tb0000002gZb0') return 'Задние ряды';
+		if (opportunityEvents.get(0).OpportunityId__r.ProductId__c == '01tb0000002gZcy') return 'VIP';
+		if (opportunityEvents.get(0).OpportunityId__r.ProductId__c == '01tb0000002gZav') return 'Середина зала';
+		if (opportunityEvents.get(0).OpportunityId__r.ProductId__c == '01tb0000002gaIF') return 'Для участников коучинга';
+		return opportunityEvents.get(0).OpportunityId__r.SeatType__c;
 	}
 
 }

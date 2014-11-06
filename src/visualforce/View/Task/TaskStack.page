@@ -60,12 +60,6 @@
 			height: 500px;
 			overflow: scroll;
 		}
-		.width350 {
-			width: 355px;
-		}
-		.width250 {
-			width: 250px;
-		}
 		.width150 {
 			width: 150px;
 		}
@@ -80,7 +74,7 @@
 		}
 		.mask {
 			z-index: -9999;
-			position: fixed;
+			position: absolute;
             border-radius: 3px;
 			background-color: black;
 			opacity: 0.1;
@@ -88,7 +82,7 @@
 		}
 		.task_url_holder,
 		.message_block {
-			position: fixed;
+			position: absolute;
 			display: none;
 			top: 0px;
 			left: 0px;
@@ -127,7 +121,7 @@
 				<apex:pageBlockTable id="TheTableHeader" value="{!records}" var="record" columnClasses="columns">
 					<apex:column headerClass="width5" />
 					<apex:column headerValue="Название" />
-					<apex:column headerValue="Связана с" headerClass="width350" />
+					<apex:column headerValue="Связана с" headerClass="width150" />
 					<apex:column headerValue="Статус" headerClass="width150" />
 					<apex:column headerValue="Приоритет" headerClass="width150" />
 					<apex:column headerValue="Дедлайн" headerClass="width150" />
@@ -138,17 +132,14 @@
 						<apex:column styleClass="{!IF(record.delta > 15, 'record_future', IF(record.delta < -15, 'record_past', 'record_now'))}" rendered="{!record.status != 'Выполняется'}" />
 						<apex:column styleClass="record_in_progress" rendered="{!record.status = 'Выполняется'}" />
 						<apex:column >
-							<apex:outputLink value="/{!record.taskId}" target="_parent"><apex:outputText value="{!record.subject}" /></apex:outputLink>
+							<apex:outputText value="{!record.subject}" />
 						</apex:column>
-						<apex:column styleClass="width100">
+						<apex:column styleClass="width150">
 							<apex:outputText value="Кампания" rendered="{!record.relatedObjectType = 'Campaign'}" />
 							<apex:outputText value="Обращение" rendered="{!record.relatedObjectType = 'Case'}" />
 							<apex:outputText value="Заявка" rendered="{!record.relatedObjectType = 'Opportunity'}" />
 							<apex:outputText value="Задача" rendered="{!record.relatedObjectType = 'Task'}" />
 							<apex:outputText value="Рекомендация" rendered="{!record.relatedObjectType = 'PossibleAccount__c'}" />
-						</apex:column>
-						<apex:column styleClass="width250">
-							<apex:outputLink value="/{!record.WhatId}" target="_parent" rendered="{!record.relatedObjectType != null}"><apex:outputText value="{!record.relatedObjectName}" /></apex:outputLink>
 						</apex:column>
 						<apex:column value="{!record.status}" styleClass="width150" />
 						<apex:column value="{!record.priority}" styleClass="width150" />
@@ -159,8 +150,8 @@
 		</apex:pageBlock>
 		<div id="TaskUrlHolder" class="task_url_holder">{!taskToBeDoneUrl}</div>
 		<div id="MessageHolder" class="message_block">{!message}</div>
+		<div id="TheMask" class="mask"/>
  	</apex:form>
-	<div id="TheMask" class="mask"/>
 
  	<apex:includeScript value="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js" />
  	<script type="text/javascript">
@@ -188,8 +179,10 @@
 			var mask = document.getElementById('TheMask');
 			mask.style.width = j$('[id$=TheBlock]').width() + 'px';
 			mask.style.height = j$('[id$=TheBlock]').height() + 'px';
-			mask.style.top = j$('[id$=TheBlock]').offset().top + 'px';
-			mask.style.left = j$('[id$=TheBlock]').offset().left + 'px';
+			var top = j$('[id$=TheBlock]').offset().top - j$('.bodyDiv').offset().top;
+			var left = j$('[id$=TheBlock]').offset().left - j$('.bodyDiv').offset().left;
+			mask.style.top = top + 'px';
+			mask.style.left = left  + 'px';
  			document.getElementById('TheMask').style.zIndex = '9999';
  		}
 

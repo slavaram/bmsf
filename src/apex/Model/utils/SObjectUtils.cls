@@ -9,7 +9,6 @@ public class SObjectUtils {
 		if (sObjectType == null || withSystemFields == null) return result;
 		Map<String, Schema.SObjectField> fieldsMap = Schema.getGlobalDescribe().get(sObjectType).getDescribe().fields.getMap();
 		List<String> fieldNames = new List<String>(fieldsMap.keySet());
-		result.add('Id');
 		if (withSystemFields) {
 			for (String fieldName : fieldsMap.keySet()) {
 				if (fieldsMap.get(fieldName).getDescribe().isAccessible()) result.add(fieldName);

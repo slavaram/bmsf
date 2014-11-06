@@ -15,6 +15,7 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 
 	if (trigger.isAfter) {
 		if (!OpportunityMethod.DONE) {
+			OpportunityMethod.DONE = true;
 			OpportunityExcecutor oppExcecutor = new OpportunityExcecutor();
 			oppExcecutor.deleteNonActualActivitesBeforeUpdate(trigger.newMap, trigger.oldMap);
 	
@@ -30,7 +31,7 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 					}
 				}
 			}
-			insert toInsert;
+			insert toInsert;																											// SELF INVOCATION
 		}
 
 		List<id> listOpportunityId = new List<id>();
@@ -51,17 +52,17 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 		}
 		update tasks;
 
-		update [SELECT Id, OpportunityId__c, ActionID__c
-		        FROM ApplicationsActivities__c
-		        WHERE OpportunityId__c IN :trigger.newMap.keySet()
-		        AND (OpportunityId__r.StageName = 'Условно оплачена'
-		        		OR OpportunityId__r.StageName = 'Оплачено'
-		        		OR OpportunityId__r.StageName = 'Частичная оплата')
-		        ];
-
-        for(ProductRoles__c par : ProductRoles__c.getAll().values()) {
-            bmOpportunity.createAccountRoleForUpdate(activities, par.ProductName__c, par.RoleNumber__c);
-        }
+		List<ApplicationsActivities__c> activities = [SELECT Id, OpportunityId__c, ActionID__c,
+                                                      ActionID__r.Name, ActionID__r.ParentId__c,
+                                                      OpportunityId__r.StageName,
+                                                      OpportunityId__r.AccountID
+                                               FROM ApplicationsActivities__c
+                                               WHERE OpportunityId__c IN :trigger.newMap.keySet()
+                                                 AND OpportunityId__r.StageName IN ('Условно оплачена', 'Оплачено', 'Частичная оплата')];
+		 update activities;
+		 for(ProductRoles__c par : ProductRoles__c.getAll().values()) {
+		     bmOpportunity.createAccountRoleForUpdate(activities, par.ProductName__c, par.RoleNumber__c);
+		 }
 
 		List<StepPayment__c> paymentSteps = new List<StepPayment__c>();
 		for (Opportunity oldOpp : trigger.old) {
@@ -189,7 +190,7 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 	                oliToInsert.add(oli);
 	            }
 	        }	
-			insert oliToInsert;
+			insert oliToInsert;																													// SELF INVOCATION
 	    }
 	}
 

@@ -182,7 +182,7 @@ global class OpportunityEntity {
 		}
 	}
 
-	global void getListActions() {
+	global void getListActions() {																											// ЗАГЛУХА НА ПРОДУКТЫ
 		Product2 product = selectProductByName(fieldProduct);
 		List<AvailableEvents__c> availableEvents = [SELECT ActionID__c, ActionID__r.ParentId__c, Product__c
 		                                            FROM AvailableEvents__c
@@ -192,7 +192,13 @@ global class OpportunityEntity {
 		                                            AND ActionID__r.RegistrationEndDate__c >= :DateTime.now()];
 		List<String> actionIds = new List<String>();
 		for (AvailableEvents__c event : availableEvents) {
-			actionIds.add(event.ActionID__c);
+			if (event.Product__c == '01tb00000008prgAAA') {
+				if (event.ActionID__r.ParentId__c != 'a00b000000HLkAtAAL') actionIds.add(event.ActionID__c);
+			} else if (event.Product__c == '01tb00000008bYQAAY') {
+				if (event.ActionID__r.ParentId__c != 'a00b000000IC16PAAT') actionIds.add(event.ActionID__c);
+			} else {
+				actionIds.add(event.ActionID__c);
+			}
 		}
 		createListActions(selectActionByIds(actionIds, null));
 	}

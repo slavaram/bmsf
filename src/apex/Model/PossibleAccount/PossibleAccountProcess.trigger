@@ -10,9 +10,9 @@ trigger PossibleAccountProcess on PossibleAccount__c (before insert, after inser
 		List<String> phones = new List<String>();
 		List<Id> accountIds = new List<Id>();
 		for (PossibleAccount__c possibleAccount : trigger.new) {
-			if (possibleAccount.Email__c != null) emails.add(possibleAccount.Email__c);
-			if (possibleAccount.Phone__c != null && possibleAccount.Phone__c != '+7') phones.add(possibleAccount.Phone__c);
-			if (possibleAccount.RecommendedBy__c != null)	accountIds.add(possibleAccount.RecommendedBy__c);
+			if (possibleAccount.Email__c != null)										emails.add(possibleAccount.Email__c);
+			if (possibleAccount.Phone__c != null && possibleAccount.Phone__c != '+7')	phones.add(possibleAccount.Phone__c);
+			if (possibleAccount.RecommendedBy__c != null)								accountIds.add(possibleAccount.RecommendedBy__c);
 		}
 		List<Account> likeAccounts = [SELECT Id, FirstName, LastName, PersonEmail, Phone
 		                              FROM Account
@@ -43,25 +43,9 @@ trigger PossibleAccountProcess on PossibleAccount__c (before insert, after inser
 				}
 			}
 			if (!likeAccountsFound) descriptionBody = '';
-			String taskName = 'Рекомендация. ';
-			if (possibleAccount.Source__c != null) {
-				if (possibleAccount.Source__c.length() > 200) {
-					taskName += possibleAccount.Source__c.substring(200);
-				} else {
-					taskName += possibleAccount.Source__c;
-				}
-			}
-			Task tas = new Task(Subject = taskName,
-								WhatId = possibleAccount.Id,
-								WhoId = accountAndContact.get(possibleAccount.RecommendedBy__c),
-								ActivityDate = deadline,
-								Status = 'Новая',
-								Priority = 'Высокий',
-								Description = descriptionBody,
-								OwnerId = possibleAccount.OwnerId);
-			toInsert.add(tas);
 		}
-		insert toInsert;
+		
+		TaskMethods.createTask(trigger.new);
 	}
 
 }

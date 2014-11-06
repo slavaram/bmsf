@@ -137,7 +137,7 @@ trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 	                List<String> childPercents = packageAndPercents.get(opp.ProductId__c);
 	                for (Integer i = 0;  i < childProducts.size(); i++) {
 	                    OpportunityLineItem oli = new OpportunityLineItem();
-	                    oli.ProductId__c = Id.valueOf(childProducts.get(i));                                                                          
+	                    oli.ProductId__c = Id.valueOf(childProducts.get(i));
 	                    oli.UnitPrice = totalPrice / 100 * Double.valueOf(childPercents.get(i));
 						if (oli.UnitPrice == null) oli.UnitPrice = 0.0;
 	                    oli.OpportunityId = opp.id;
@@ -168,7 +168,6 @@ trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 	            }
 			}
 			insert oliToInsert;																											//ONE MORE MEGA FAIL !!!!!!!!!
-			OpportunityMethod.DONE = true;
 	    }
 
 		List<Payment__c> newPayments = new List<Payment__c>();
@@ -185,10 +184,12 @@ trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 	    }
 		insert toInsert;																												//YEAP, MEGA FAIL AGAIN !!!!!!!!!
 
-	    BMOpportunity bmOpportunity = new BMOpportunity();
-	    for(ProductRoles__c par : ProductRoles__c.getAll().values()) {
-            bmOpportunity.createAccountRoleForInsert(trigger.new, par.ProductName__c, par.RoleNumber__c);
-        }
+		try {
+		    BMOpportunity bmOpportunity = new BMOpportunity();
+		    for(ProductRoles__c par : ProductRoles__c.getAll().values()) {
+	            bmOpportunity.createAccountRoleForInsert(trigger.new, par.ProductName__c, par.RoleNumber__c);
+	        }
+		} catch (Exception ex) {}
 	}
 
 }

@@ -29,18 +29,16 @@ public with sharing class TaskStackController {
 		public Integer delta				{get; private set;}
 		public String deadline				{get; private set;}
 		public String relatedObjectType		{get; private set;}
-		public String relatedObjectName		{get; private set;}
 
-		public Record(Id taskId, DateTime activityDateTime, Decimal delta, String subject, String status, String priority, Id whatId, String relatedObjectType, String relatedObjectName) {
+		public Record(Id taskId, DateTime activityDateTime, Decimal delta, String subject, String status, String priority, Id whatId, String relatedObjectType) {
 			this.taskId				= taskId;
-			this.subject			= (subject != null && subject.length() > 50 ? subject.substring(0, 48) + '..' : subject);
+			this.subject			= (subject != null && subject.length() > 100 ? subject.substring(0, 98) + '..' : subject);
 			this.activityDateTime	= activityDateTime;
 			this.delta				= Integer.valueOf(delta);
 			this.status				= status;
 			this.priority			= priority;
 			this.whatId				= whatId;
 			this.relatedObjectType	= relatedObjectType;
-			this.relatedObjectName	= (relatedObjectName != null && relatedObjectName.length() > 30 ? relatedObjectName.substring(0, 28) + '..' : relatedObjectName);
 			deadline = String.valueOf(activityDateTime).substring(11, 16);
 			if (activityDateTime.day() != System.today().day()) {
 				deadline += ' (' + activityDateTime.day() + ' ' + ApexUtils.getMonthNameRus(activityDateTime.month(), false);
@@ -80,33 +78,22 @@ public with sharing class TaskStackController {
 			refresh();
 			return null;
 		} else {
-			SavePoint save = Database.setSavepoint();
 			try {
-				Id objectId = Id.valueOf(ApexUtils.decript(EncodingUtil.urlDecode(taskParameter, 'UTF-8')));
+				System.debug(EncodingUtil.urlDecode(taskParameter, 'UTF-8'));
+				Id objectId = Id.valueOf(ApexUtils.decript(EncodingUtil.urlDecode(taskParameter, 'UTF-8').replace(' ', '+')));
 				if (objectId != null && objectId.getSObjectType().getDescribe().getName() == 'Task') {
 					return new PageReference(System.URL.getSalesforceBaseUrl().toExternalForm() + '/' + objectId);
 				} else if (objectId != null && objectId.getSObjectType().getDescribe().getName() == 'CampaignMember') {
-					CampaignMember member = [SELECT Id, CampaignId, Campaign.Priority__c, ContactId, Contact.AccountId FROM CampaignMember WHERE Id =:objectId].get(0);
-					Task tas = new  Task(
-							Subject				= CAMPAIGN_TASK_SUBJECT,
-							Status				= TASK_STAGE_IN_PROGESS,
-							WhatId				= member.CampaignId,
-							WhoId				= member.ContactId,
-							isGetNewTask__c		= true,
-							Priority			= member.Campaign.Priority__c,
-							ActivityDate		= System.today(),
-							OwnerId				= UserInfo.getUserId(),
-							ActivityDateTime__c	= System.now());
-					insert tas;
-					update new CampaignMember(Id = objectId, IsCallTaskCreated__c = true);
-					AccountMethods.assignAccountOwner(member.Contact.AccountId, UserInfo.getUserId());
-					return new PageReference(System.URL.getSalesforceBaseUrl().toExternalForm() + '/' + tas.Id);
+					CampaignMember member = [SELECT Id, CampaignId, ContactId, Contact.AccountId, Campaign.Priority__c, Campaign.Goal__c
+					                         FROM CampaignMember
+					                         WHERE Id = :objectId].get(0);
+					return new PageReference(System.URL.getSalesforceBaseUrl().toExternalForm() + '/' + TaskMethods.createTask(member, (Id) UserInfo.getUserId()));
 				} else {
 					refresh();
 					return null;
 				}
 			} catch (Exception ex) {
-				Database.rollback(save);
+				System.debug(ex.getMessage());
 				return null;
 			}
 		}
@@ -128,31 +115,14 @@ public with sharing class TaskStackController {
 
 	private void refreshTable() {
 		records.clear();
-		List<Task> tasks = [SELECT Id, Subject, ActivityDateTime__c, Status, Priority, WhatId, What.Name, TaskTrack__c, Delta__c
+		List<Task> tasks = [SELECT Id, Subject, ActivityDateTime__c, Status, Priority, WhatId, Delta__c
 		                    FROM Task
 		                    WHERE OwnerId = :UserInfo.getUserId()
 		                    AND Status != :TASK_STAGE_CLOSED
 		                    ORDER BY ActivityDateTime__c];
-		Map<Id, String> taskAndName = new Map<Id, String>();
 		for (Task tas : tasks) {
-			if (!String.isEmpty(tas.TaskTrack__c)) taskAndName.put(tas.TaskTrack__c.substringAfterLast(','), null);
-		}
-		for (Task tas : [SELECT Id, Subject FROM Task WHERE Id IN :taskAndName.keySet()]) {
-			taskAndName.put(tas.Id, tas.Subject);
-		}
-		for (Task tas : tasks) {
-			String relatedObjectType = '';
-			String relatedObjectName = '';
-			if (String.isEmpty(tas.TaskTrack__c)) {
-				if (!String.isEmpty(tas.WhatId)) {
-					relatedObjectType = tas.WhatId.getSObjectType().getDescribe().getName();
-					relatedObjectName = tas.What.Name;
-				}
-			} else {
-				relatedObjectType = 'Task';
-				relatedObjectName = taskAndName.get(tas.TaskTrack__c.substringAfterLast(','));
-			}
-			if (type.contains(relatedObjectType)) records.add(new Record(tas.Id, tas.ActivityDateTime__c, tas.Delta__c, tas.Subject, tas.Status, tas.Priority, tas.WhatId, relatedObjectType, relatedObjectName));
+			String sourceObjectType = (tas.WhatId == null ? null : tas.WhatId.getSObjectType().getDescribe().getName());
+			if (type.contains(sourceObjectType)) records.add(new Record(tas.Id, tas.ActivityDateTime__c, tas.Delta__c, tas.Subject, tas.Status, tas.Priority, tas.WhatId, sourceObjectType));
 		}
 	}
 
@@ -160,10 +130,11 @@ public with sharing class TaskStackController {
 		message			= null;
 		taskToBeDone	= null;
 		taskToBeDoneUrl	= null;
-		if (TaskStack.getTasksInProgres(UserInfo.getUserId()).isEmpty()) {
-			taskToBeDone = TaskStack.getTaskToBeDone(UserInfo.getUserId());
+		List<Task> currentTasks = [SELECT Id FROM Task WHERE Status = :TASK_STAGE_IN_PROGESS AND OwnerId = :UserInfo.getUserId()];
+		if (currentTasks.isEmpty()) {
+			taskToBeDone = TaskMethods.getUserNextTask(UserInfo.getUserId());
 			if (taskToBeDone == null) {
-				CampaignMember member = TaskStack.getCampaignMemberForNewTask(UserInfo.getUserId());
+				CampaignMember member = getCampaignMemberForNewTask(UserInfo.getUserId());
 				if (member == null) {
 					message = 'Для тебя нет ни одной задачки, можешь прогуляться.';
 				} else {
@@ -173,7 +144,7 @@ public with sharing class TaskStackController {
 				taskToBeDoneUrl = getRedirectUrlFor(taskToBeDone.Id);
 			}
 		} else {
-			message = 'У тебя есть текущие незавершенные задачи.';
+			taskToBeDoneUrl = getRedirectUrlFor(currentTasks.get(0).Id);
 		}
 	}
 
@@ -181,7 +152,35 @@ public with sharing class TaskStackController {
 		String baseUrl		= System.URL.getSalesforceBaseUrl().toExternalForm();
 		String pageUrl		= ApexPages.currentPage().getUrl().substringBefore('?');
 		String parameters	= '?' + REQUEST_PARAMETER_TASK + '=' + EncodingUtil.urlEncode(ApexUtils.encript(String.valueOf(objectId)), 'UTF-8');
+		System.debug(ApexUtils.encript(String.valueOf(objectId)));
 		return baseUrl + pageUrl + parameters;
+	}
+
+	private static CampaignMember getCampaignMemberForNewTask(Id userId) {
+		List<CampaignMember> result = selectCampaignMembers(userId);
+		if (result.isEmpty()) result = selectCampaignMembers(null);
+		return (result.isEmpty() ? null : result.get(0));
+	}
+
+	private static List<CampaignMember> selectCampaignMembers(Id userId) {
+		List<CampaignMember> result = new List<CampaignMember>();
+		String query = 'SELECT Id ' +
+						'FROM CampaignMember ' +
+						'WHERE Campaign.IsActive = true ' +
+						'AND IsCallTaskCreated__c = false ' +
+						'AND ContactId != null ' +
+						'AND Contact.AccountId != null ' +
+						(userId == null ?
+								'AND (Contact.Account.Owner.IsActive = false OR Contact.Account.Owner.Name = \'Администратор\') ' :
+								'AND Contact.Account.OwnerId = \'' + userId + '\' ') +
+						'ORDER BY Campaign.Priority__c ' +
+						'LIMIT 100';
+		try {
+			result = Database.query(query);
+		} catch (Exception ex) {
+			// TODO
+		}
+		return result;
 	}
 
 }

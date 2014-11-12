@@ -21,14 +21,18 @@ public class SObjectUtils {
 		return result;
 	}
 
+	public static List<String> getObjectPickListFieldLabels(String sObjectType, String field) {
+		List<String> result = new List<String>();
+		for (Schema.PicklistEntry entry : Schema.getGlobalDescribe().get(sObjectType).getDescribe().fields.getMap().get(field).getDescribe().getPickListValues()) {
+			result.add(entry.getLabel());
+		}
+		return result;
+	}
+
 	public static List<SelectOption> getObjectPickListFieldValues(SObject obj, String field) {
 		List<SelectOption> options = new List<SelectOption>();
-		Schema.sObjectType objectType = obj.getSObjectType();
-		Schema.DescribeSObjectResult objectDescribe = objectType.getDescribe();
-		Map<String, Schema.SObjectField> fieldMap = objectDescribe.fields.getMap();
-		List<Schema.PicklistEntry> values = fieldMap.get(field).getDescribe().getPickListValues();
-		for (Schema.PicklistEntry a : values) { 
-			options.add(new SelectOption(a.getLabel(), a.getValue())); 
+		for (Schema.PicklistEntry entry : obj.getSObjectType().getDescribe().fields.getMap().get(field).getDescribe().getPickListValues()) { 
+			options.add(new SelectOption(entry.getLabel(), entry.getValue())); 
 		}
 		return options;
 	}

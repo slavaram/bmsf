@@ -24,6 +24,9 @@ public with sharing class DayMemberController {
 	public Map<Id, List<BODayMember.DayMember>> dayMembers		{get; set;}
 	public List<ApplicationsActivities__c> opportunityEvents	{get; set;}
 
+	private Boolean savable = false;
+	private Set<String> profiles = new Set<String> {'00eb0000000QbbzAAC', '00eb0000000QbcJAAS', '00eb0000000QbbzAAC', '00eb0000000QbcJAAS'};
+
 	public Integer dayMembersSize {
 		get {return dayMembers.size();} 
 		set;
@@ -35,21 +38,26 @@ public with sharing class DayMemberController {
 	}
 
 	public DayMemberController(ApexPages.Standardcontroller controller) {
-	 	init(controller.getId(), ApexPages.currentPage().getParameters().get('LoanStatus'));
+	 	init(controller.getId());
 	}
 
-	private void init(String accountId, String status) {
+	private void init(String accountId) {
 		Client = [SELECT Name, Id, Phone, PersonEmail, Owner__c, isCardGiven__c FROM Account WHERE Id = :accountId].get(0);
-		if (status != '' && status != null && status == 'Акт по кредиту сформирован') {
-			isLoan = true;
-			loanStatus = status;
-		}
 		cardGranted					= client.isCardGiven__c;
 		BODayMember dayMemberData	= new BODayMember(Date.today(), client.Id);
 		opportunityEvents			= dayMemberData.opportunityEvents.values();
 		dayMembers					= dayMemberData.getDayMemders();
 		seatType					= getSeatType();
 		statusSendAllTask();
+		for (ApplicationsActivities__c activity : opportunityEvents) {
+			System.debug(activity.OpportunityId__c);
+			if (activity.OpportunityId__r.LoanStatus__c == 'Акт по кредиту сформирован') {
+				isLoan = true;
+				loanStatus = 'Акт по кредиту сформирован';
+			} else {
+				savable = true;
+			}
+		}
 	}
 
 	private void statusSendAllTask() {
@@ -103,6 +111,7 @@ public with sharing class DayMemberController {
 	}
 
 	public PageReference save() {
+		if (!savable && profiles.contains(UserInfo.getProfileId())) return null;
 		List<DayMember__c> toDelete = new List<DayMember__c>();
 		List<DayMember__c> toInsert = new List<DayMember__c>();
 		if (promo1 != null && doubPromo1 != true) {

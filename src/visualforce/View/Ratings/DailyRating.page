@@ -1,0 +1,122 @@
+<apex:page controller="DailyRatingController">
+	<apex:styleSheet value="{!$Resource.StyleRating}"/>
+
+	<apex:form >
+	<apex:pageBlock title="Дневной рейтинг менеджеров" id="Rating">
+	
+	<apex:pageBlockSection >
+        <apex:pageBlockSectionItem labelStyle="text-align:right" dataStyle="text-align:left">
+            <apex:outputLabel for="StartDate">День</apex:outputLabel>
+            <apex:panelGroup >
+                <apex:inputField id="StartDate" value="{!cdate.ActivityDate}">
+                   <apex:actionSupport event="onchange" action="{!refreshPage}" reRender="Rating" status="RefreshDate"/>
+                </apex:inputField>
+                <apex:actionStatus id="RefreshDate">
+					<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+				</apex:actionStatus>
+            </apex:panelGroup>
+        </apex:pageBlockSectionItem>
+        <apex:pageBlockSectionItem rendered="{!renderFlag}">
+			<apex:outputLabel value="Группа"/>
+			<apex:outputPanel >
+				<apex:selectList value="{!managerGroup}" size="1" multiselect="false">
+					<apex:SelectOptions value="{!managerGroups}"/>
+					<apex:actionSupport event="onchange" action="{!refreshPage}" status="RefreshRating" rerender="Rating"/>
+				</apex:selectList>
+				<apex:actionStatus id="RefreshRating">
+					<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+				</apex:actionStatus>
+			</apex:outputPanel>
+		</apex:pageBlockSectionItem>
+    </apex:pageBlockSection>
+    <apex:pageBlockSection rendered="{!renderFlag}">
+        <apex:pageBlockSectionItem labelStyle="text-align:right" dataStyle="text-align:left">
+			<apex:outputLabel value="Мод"/>
+			<apex:outputPanel >
+				<apex:selectList value="{!Mod}" size="1" multiselect="false">
+					<apex:SelectOptions value="{!Mods}"/>
+					<apex:actionSupport event="onchange" action="{!RefreshPage}" status="RefreshRating" rerender="Rating"/>
+				</apex:selectList>
+				<apex:actionStatus id="RefreshRating">
+					<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+				</apex:actionStatus>
+			</apex:outputPanel>
+		</apex:pageBlockSectionItem>
+		<!-- 
+		<apex:pageBlockSectionItem rendered="{!renderFlag}">
+			<apex:outputLabel value="Отдел"/>
+			<apex:outputPanel >
+				<apex:selectList value="{!SDM}" size="1" multiselect="false">
+					<apex:SelectOptions value="{!SDMs}"/>
+					<apex:actionSupport event="onchange" action="{!refreshPage}" status="RefreshRating" rerender="Rating"/>
+				</apex:selectList>
+				<apex:actionStatus id="RefreshRating">
+					<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>   
+				</apex:actionStatus>
+			</apex:outputPanel>
+		</apex:pageBlockSectionItem>
+    	 -->
+    </apex:pageBlockSection>
+    <apex:commandButton action="{!RefreshPage}" value="Обновить" id="theButton"/>
+    	<apex:pageBlockTable value="{!UsersRating}" var="UserRating">
+			<apex:column style="text-align: center">
+				<apex:facet name="header">Место</apex:facet>
+					<div class="positionToday" style="font-size: 30px">
+						<apex:outputText value="{!UserRating.position}" styleClass="PositionInRating"/>
+					</div>
+			</apex:column>
+ 
+			<apex:column >
+				<apex:facet name="header">Менеджер</apex:facet>
+					<apex:outputLink value="/{!UserRating.userId}" styleClass="Manager">
+						<apex:image value="{!UserRating.userPhoto}" style="width: 35px !important; height: 35px !important;"/>
+						<apex:outputText value="{!UserRating.userName}"/>
+					</apex:outputLink>	
+			</apex:column>
+			<apex:column >
+				<apex:facet name="header">Закрытые/Открытые задачи<br/>Процент выполнения</apex:facet>
+						<apex:outputText value="({0}/{1}) {2, number, #.#}%" style="font-size:20px; {!IF((timePerc == 0) || (UserRating.completedTasksPercantage / (timePerc + 0.00001) <= 75),'color:red',IF(UserRating.completedTasksPercantage <= 95,'color:gold','color:green'))}">
+							<apex:param value="{!UserRating.closeTasksCount}"/>
+							<apex:param value="{!UserRating.openTasksCount}"/>
+							<apex:param value="{!UserRating.completedTasksPercantage}"/>
+						</apex:outputText>
+			</apex:column>
+			<apex:column >
+				<apex:facet name="header">Кол-во дозвонов</apex:facet>
+						<apex:outputText value="({0}/{1}) {2, number, #.#}%" style="font-size:20px; {!IF((timePerc == 0) || (UserRating.sucCallsCount / (timePerc * UserRating.sucCallsPlan + 0.00001) * 100 <= 75),'color:red',IF(UserRating.sucCallsCount / (timePerc * UserRating.sucCallsPlan) * 100 <= 95,'color:gold','color:green'))}">
+							<apex:param value="{!UserRating.sucCallsCount}"/>
+							<apex:param value="{!UserRating.sucCallsPlan}"/>
+							<apex:param value="{!IF(UserRating.sucCallsPlan == 0, 0, UserRating.sucCallsCount / UserRating.sucCallsPlan * 100)}"/>
+						</apex:outputText>
+			</apex:column>
+			<apex:column >
+				<apex:facet name="header">Кол-во задач<br/>из кнопки</apex:facet>
+						<apex:outputText value="({0}/{1}) {2, number, #.#}%" style="font-size:20px; {!IF((timePerc == 0) || (UserRating.butTasksCount / (timePerc * UserRating.butTasksPlan + 0.00001) * 100 <= 75),'color:red',IF(UserRating.butTasksCount / (timePerc * UserRating.butTasksPlan) * 100 <= 95,'color:gold','color:green'))}">
+							<apex:param value="{!UserRating.butTasksCount}"/>
+							<apex:param value="{!UserRating.butTasksPlan}"/>
+							<apex:param value="{!IF(UserRating.butTasksPlan == 0, 0, UserRating.butTasksCount / UserRating.butTasksPlan * 100)}"/>
+						</apex:outputText>
+			</apex:column>
+			<apex:column >
+				<apex:facet name="header">Кол-во созданных<br/>заявок</apex:facet>
+						<apex:outputText value="({0}/{1}) {2, number, #.#}%" style="font-size:20px; {!IF((timePerc == 0) || (UserRating.createdOppsCount / (timePerc * UserRating.createdOppsPlan + 0.00001) * 100 <= 75),'color:red',IF(UserRating.createdOppsCount / (timePerc * UserRating.createdOppsPlan) * 100 <= 95,'color:gold','color:green'))}">
+							<apex:param value="{!UserRating.createdOppsCount}"/>
+							<apex:param value="{!UserRating.createdOppsPlan}"/>
+							<apex:param value="{!IF(UserRating.createdOppsPlan == 0, 0, UserRating.createdOppsCount / UserRating.createdOppsPlan * 100)}"/>
+						</apex:outputText>
+			</apex:column>
+			<apex:column >
+				<apex:facet name="header">Платежи</apex:facet>
+						<apex:outputText value="({0}/{1}) {2, number, #.#}%" style="font-size:15px; {!IF((timePerc == 0) || (UserRating.payments / (timePerc * UserRating.paymentsPlan + 0.00001) * 100 <= 75),'color:red',IF(UserRating.payments / (timePerc * UserRating.paymentsPlan) * 100 <= 95,'color:gold','color:green'))}" rendered="{!Mod != 'byManagers'}">
+							<apex:param value="{!UserRating.payments}"/>
+							<apex:param value="{!UserRating.paymentsPlan}"/>
+							<apex:param value="{!IF(UserRating.paymentsPlan == 0, 0, UserRating.payments / UserRating.paymentsPlan * 100)}"/>
+						</apex:outputText>
+						<apex:outputText value="{0}" rendered="{!Mod == 'byManagers'}" style="font-size:15px;">
+							<apex:param value="{!UserRating.payments}"/>
+						</apex:outputText>
+			</apex:column>
+		</apex:pageBlockTable>
+	</apex:pageBlock>
+	</apex:form>
+</apex:page>

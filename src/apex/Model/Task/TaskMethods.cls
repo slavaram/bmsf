@@ -20,7 +20,7 @@ public without sharing class TaskMethods {
 		}
 	}
 
-	private class TaskEntity {
+	/*private class TaskEntity {
 		TasksMatrix__c matrix;
 		public TaskEntity(TasksMatrix__c matrix) {
 			this.matrix = matrix;
@@ -44,7 +44,7 @@ public without sharing class TaskMethods {
 			}
 			return (Task) obj;
 		}
-	}
+	}*/
 
 	public static Task getUserNextTask(Id userId) {
 		if (userId == null) throw new InvalidParameterException('Invalid user Id: \'null\'');
@@ -179,7 +179,7 @@ public without sharing class TaskMethods {
 		insert tasks;
 	}
 
-	public static Task createTask(Task sourceTask) {
+	/*public static Task createTask(Task sourceTask) {
 		if (sourceTask == null) throw new InvalidParameterException('Invalid Task: \'null\'');
 		List<TaskEntity> taskMatrix = new List<TaskEntity>();
 		for (TasksMatrix__c matrix : TasksMatrix__c.getAll().values()) {
@@ -189,7 +189,7 @@ public without sharing class TaskMethods {
 			if (entity.matches(sourceTask)) return entity.getTask();
 		}
 		throw new TaskNotDefinedException('Task does not match any entity in TasksMatrix__c setting');
-	}
+	}*/
 
 	public static void setWhoId(List<Task> tasks) {
 		Set<Id> whatIds = new Set<Id>();

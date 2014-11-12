@@ -136,6 +136,7 @@ public class ApexUtils {
 	}
 
 	public static String encript(String secret) {
+		if (String.isBlank(secret)) return null;
 		Blob key		= EncodingUtil.base64Decode(ENCRYPT_KEY);
 		Blob blobSecret	= Blob.valueOf(secret);
 		Blob encrypted	= Crypto.encrypt('AES128', key, key, blobSecret);
@@ -143,6 +144,7 @@ public class ApexUtils {
 	}
 
 	public static String decript(String encriptedSecret) {
+		if (String.isBlank(encriptedSecret)) return null;
 		Blob key		= EncodingUtil.base64Decode(ENCRYPT_KEY);
 		Blob encripted	= EncodingUtil.base64Decode(encriptedSecret);
 		Blob decrypted	= Crypto.decrypt('AES128', key, key, encripted);
@@ -150,6 +152,7 @@ public class ApexUtils {
 	}
 
 	public static List<sObject> shuffle(List<sObject> toShuffle) {
+		if (toShuffle == null || toShuffle.isEmpty()) return null;
 		List<sObject> result	= new List<sObject>();
 		List<sObject> temp		= new List<sObject>(toShuffle);
 		for (Integer lim = temp.size(); lim > 0; lim--) {
@@ -161,6 +164,7 @@ public class ApexUtils {
 	}
 
 	public static List<Id> shuffle(List<Id> toShuffle) {
+		if (toShuffle == null || toShuffle.isEmpty()) return null;
 		List<Id> result	= new List<Id>();
 		List<Id> temp	= new List<Id>(toShuffle);
 		for (Integer lim = temp.size(); lim > 0; lim--) {
@@ -169,6 +173,22 @@ public class ApexUtils {
 			temp.remove(index);
 		}
 		return result;
+	}
+
+	public static String getProfileKeyById(Id profileId) {
+		if (profileId == null) return null;
+		for (OrganizationProfiles__c profileKey : OrganizationProfiles__c.getAll().values()) {
+			if (String.valueOf(profileId) == profileKey.Id__c) return profileKey.Name;
+		}
+		return null;
+	}
+
+	public static String getProfileIdByKey(String key) {
+		if (key == null) return null;
+		for (OrganizationProfiles__c profileKey : OrganizationProfiles__c.getAll().values()) {
+			if (key == profileKey.Name) return profileKey.Id__c;
+		}
+		return null;
 	}
 
 }

@@ -90,7 +90,7 @@ public class BODayMember {
 					 FROM ApplicationsActivities__c
 					 WHERE ActionID__r.ParentId__c IN :eventIds
 					 AND OpportunityId__r.AccountId = :accountId
-					 AND OpportunityId__r.StageName != 'Дубль'
+					 AND OpportunityId__r.StageName IN ('Оплачено', 'Условно оплачена', 'Частичная оплата')
 					 ORDER BY OpportunityId__r.SummOfPayments__c DESC]);
 		} catch (exception ex) {
 			return new Map<String, ApplicationsActivities__c>();

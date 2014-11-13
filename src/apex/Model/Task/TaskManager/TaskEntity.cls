@@ -128,7 +128,9 @@ public without sharing class TaskEntity {
 		thisTask.Resolution__c		= result;
 		thisTask.Description		= closeComment;
 		thisTask.Reason__c			= closeBlock.reason;
+		thisTask.Status				= 'Завершено';
 		toUpdate.add(thisTask);
+		Id whoId;
 		if (matrix.SourceObjectType__c == 'Opportunity') {
 			Opportunity source = [SELECT Id FROM Opportunity WHERE Id = :thisTask.WhatId].get(0);
 			source.StageName = matrix.SourceObjectStatus__c;
@@ -148,16 +150,19 @@ public without sharing class TaskEntity {
 			PossibleAccount__c source = [SELECT Id, Name__c, Email__c, Phone__c, Description__c, RealAccount__c FROM PossibleAccount__c WHERE Id = :thisTask.WhatId].get(0);
 			if (matrix.IsFullDeligation__c) source.OwnerId = getOwnerId(matrix);
 			if (result == 'Клиент подтвержден') {
-				Account acc = new Account(Name = source.Name__c, PersonEmail = source.Email__c, Phone = source.Phone__c, Description = source.Description__c, OwnerId = UserInfo.gerUserId());
+				Account acc = new Account(Name = source.Name__c, PersonEmail = source.Email__c, Phone = source.Phone__c, Description = source.Description__c, OwnerId = UserInfo.getUserId());
 				insert acc;
 				source.RealAccount__c = acc.Id;
+				whoId = acc.Id;
 			}
 			toUpdate.add(source);
 		}
-		if (!matrix.IsFinal__c) {
+		if (!matrix.IsFinal__c || matrix.IsAutoTask__c) {
 			insert new Task(ActivityDateTime__c = createBlock.activityDateTime, // ???
 							WhatId = thisTask.WhatId,
+							WhoId = (whoId == null ? thisTask.WhoId : whoId),
 							Goal__c = thisTask.Goal__c,
+							Subject = 'EMPTY SUBJECT',
 							Description = createBlock.comment,
 							ContactType__c = createBlock.communicationType,
 							Contacts__c = 'Исходящий',

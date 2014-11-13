@@ -9,7 +9,7 @@ trigger TaskProcess on Task (before insert,
 
 	if (trigger.isBefore) {
 		for (Task tas : trigger.new) {
-			if (tas.ActivityDate == null && tas.ActivityDateTime__c != null) tas.ActivityDate = (Date) tas.ActivityDateTime__c;
+			if (tas.ActivityDate == null && tas.ActivityDateTime__c != null) tas.ActivityDate = tas.ActivityDateTime__c.date();
 		}
 	}
 

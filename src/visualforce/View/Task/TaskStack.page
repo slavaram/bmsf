@@ -161,9 +161,7 @@
 		var stop = false;
 
 		window.onload = function() {
-			if (previousOnload) { 
-				previousOnload();
-			}
+			if (previousOnload) previousOnload();
 			onloadWork();
 		}
 

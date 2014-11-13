@@ -1,0 +1,79 @@
+<apex:page controller="TaskViewController" title="{!thisTask.Subject}" showChat="true" sidebar="false">
+
+	<style>
+	</style>
+
+
+	<apex:sectionHeader title="Задача" subtitle="{!thisTask.Subject}" />
+
+	<apex:form id="TheForm">
+		<apex:pageBlock mode="maindetail">
+
+			<apex:pageBlockButtons id="TheButtons" location="top">
+				<apex:commandButton value="Новая заявка" onclick="window.open({!baseUrl} + '/apex/Opportunity', '_blank'); window.focus();" />
+				<apex:commandButton value="Новый запрос" onclick="window.open({!baseUrl} + '/500/e', '_blank'); window.focus();" />
+				<apex:commandButton value="Новая рекомендация" onclick="showMessage('in development')" />
+				<apex:commandButton value="Отправить письмо" onclick="showMessage('in development')" />
+				<apex:commandButton value="Прикрепить файл" onclick="showMessage('in development')" />
+				<apex:commandButton value="Редактировать" onclick="window.open({!baseUrl} + '/apex/TaskEdit?id={!thisTask.Id}', '_parent'); window.focus();" />
+				<apex:commandButton value="Завершить" action="{!close}" rendered="{!entity.closable}" />
+				<apex:commandButton value="Удалить" action="{!deleteTask}" rendered="{!deletable}" />
+			</apex:pageBlockButtons>
+
+			<apex:pageBlockSection title="Информация о источнике">
+				<apex:outputText label="Тип источника" value="{!sourceTypeName}" />
+			</apex:pageBlockSection>
+
+
+			<apex:pageBlockSection title="Информация о задаче">
+				<apex:outputText label="Название" value="{!thisTask.Subject}" />
+				<apex:outputText label="Цель" value="{!thisTask.Goal__c}" />
+				<apex:outputText label="Статус" value="{!thisTask.Status}" />
+				<apex:outputText label="Приоритет" value="{!thisTask.Priority__c}" />
+				<apex:outputText label="Примечание" value="{!thisTask.Description}" />
+				<apex:outputText label="Срок выполнения" value="{!thisTask.ActivityDateTime__c}" />
+				<apex:outputText label="Дата создания" value="{!thisTask.CreatedDate}" />
+				<apex:outputText label="Тип контакта" value="{!thisTask.ContactType__c} ({!thisTask.Contacts__c})" />
+				<apex:outputText label="Создана" value="{!thisTask.CreatedBy.Name}" />
+			</apex:pageBlockSection>
+
+
+			<apex:pageBlockSection title="Информация о клиенте">
+				<apex:outputText label="Тип клиента" value="{!thisAccount.Id}" />
+				<apex:outputText label="Телефон" value="{!thisAccount.Phone}" />
+				<apex:outputText label="Имя" value="{!thisAccount.FirstName}" />
+				<apex:outputText label="Почта" value="{!thisAccount.PersonEmail}" />
+				<apex:outputText label="Фамилия" value="{!thisAccount.LastName}" />
+				<apex:outputText label="Согласие на телефонный контакт" value="{!thisAccount.isCallAccepted__c}" />
+				<apex:outputText label="Отчество" value="{!thisAccount.patronymic__c}" />
+				<apex:outputText label="Согласие на почтовую рассылку" value="{!thisAccount.MassEmailValid__c}" />
+				<apex:outputText label="Статус клиента" value="{!thisAccount.Status__c}" />
+				<apex:outputText label="Согласие на sms рассылку" value="{!thisAccount.smsValid__c}" />
+				<apex:outputText label="Примечание" value="{!thisAccount.Description}" />
+			</apex:pageBlockSection>
+
+
+			<apex:pageBlockSection title="Заявки и запросы клиента">
+				table..
+			</apex:pageBlockSection>
+
+
+			<apex:pageBlockSection title="Журнал касаний клиента">
+				table..
+			</apex:pageBlockSection>
+
+
+			<apex:pageBlockSection title="Прикрепленные файлы">
+				block..
+			</apex:pageBlockSection>
+		</apex:pageBlock>
+	</apex:form>
+
+
+ 	<script type="text/javascript">
+ 		function showMessage(message) {
+ 			alert(message);
+ 		}
+ 	</script>
+
+</apex:page>

@@ -132,9 +132,9 @@ public without sharing class TaskEntity {
 		toUpdate.add(thisTask);
 		Id whoId;
 		if (matrix.SourceObjectType__c == 'Opportunity') {
-			Opportunity source = [SELECT Id FROM Opportunity WHERE Id = :thisTask.WhatId].get(0);
+			Opportunity source = [SELECT Id, StageName, ExpectedPayDate__c FROM Opportunity WHERE Id = :thisTask.WhatId].get(0);
 			source.StageName = matrix.SourceObjectStatus__c;
-			source.ExpectedPayDate__c = (Date) closeBlock.possiblePaymentDate;
+			source.ExpectedPayDate__c = closeBlock.possiblePaymentDate.date();
 			if (matrix.IsFullDeligation__c) source.OwnerId = getOwnerId(matrix);
 			toUpdate.add(source);
 		} else if (matrix.SourceObjectType__c == 'Case') {
@@ -166,7 +166,8 @@ public without sharing class TaskEntity {
 							Description = createBlock.comment,
 							ContactType__c = createBlock.communicationType,
 							Contacts__c = 'Исходящий',
-							OwnerId = getOwnerId(matrix));
+							OwnerId = getOwnerId(matrix),
+							Priority = '3');		// TODO
 		}
 		if (!toUpdate.isEmpty()) update toUpdate;
 	}

@@ -1,0 +1,35 @@
+<apex:page controller="TaskEditController" title="{!thisTask.Subject}" showChat="true" sidebar="false">
+
+	<style>
+	</style>
+
+
+	<apex:sectionHeader title="Задача (редактирование)" subtitle="{!thisTask.Subject}" />
+
+	<apex:form id="TheForm">
+		<apex:pageBlock>
+			<apex:pageBlockButtons id="TheButtons" location="top">
+				<apex:commandButton value="Сохранить" action="{!save}" />
+			</apex:pageBlockButtons>
+
+			<apex:pageBlockSection title="Информация о источнике">
+			
+			</apex:pageBlockSection>
+
+
+			<apex:pageBlockSection title="Информация о задаче">
+			
+			</apex:pageBlockSection>
+
+
+			<apex:pageBlockSection title="Информация о клиенте">
+			
+			</apex:pageBlockSection>
+		</apex:pageBlock>
+	</apex:form>
+
+
+ 	<script type="text/javascript">
+ 	</script>
+
+</apex:page>

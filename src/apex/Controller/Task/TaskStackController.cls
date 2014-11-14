@@ -82,12 +82,13 @@ public with sharing class TaskStackController {
 				System.debug(EncodingUtil.urlDecode(taskParameter, 'UTF-8'));
 				Id objectId = Id.valueOf(ApexUtils.decript(EncodingUtil.urlDecode(taskParameter, 'UTF-8').replace(' ', '+')));
 				if (objectId != null && objectId.getSObjectType().getDescribe().getName() == 'Task') {
-					return new PageReference(System.URL.getSalesforceBaseUrl().toExternalForm() + '/' + objectId);
+					update new Task(Id = objectId, Status = TASK_STAGE_IN_PROGESS);
+					return new PageReference(System.URL.getSalesforceBaseUrl().toExternalForm() + (UserInfo.getUserId() == '0051100000144kpAAA' ? '/apex/TaskView?id=' : '/') + objectId);
 				} else if (objectId != null && objectId.getSObjectType().getDescribe().getName() == 'CampaignMember') {
 					CampaignMember member = [SELECT Id, CampaignId, ContactId, Contact.AccountId, Campaign.Priority__c, Campaign.Goal__c
 					                         FROM CampaignMember
 					                         WHERE Id = :objectId].get(0);
-					return new PageReference(System.URL.getSalesforceBaseUrl().toExternalForm() + '/' + TaskMethods.createTask(member, (Id) UserInfo.getUserId()));
+					return new PageReference(System.URL.getSalesforceBaseUrl().toExternalForm() + (UserInfo.getUserId() == '0051100000144kpAAA' ? '/apex/TaskView?id=' : '/') + TaskMethods.createTask(member, (Id) UserInfo.getUserId()));
 				} else {
 					refresh();
 					return null;

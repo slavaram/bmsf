@@ -64,12 +64,18 @@ class ApexUtilsTest {
 		objectsToShuffle.add(new Case(Subject = 'TestCase2'));
 		objectsToShuffle.add(new Case(Subject = 'TestCase3'));
 		objectsToShuffle.add(new Case(Subject = 'TestCase4'));
+		objectsToShuffle.add(new Case(Subject = 'TestCase5'));
+		objectsToShuffle.add(new Case(Subject = 'TestCase6'));
+		objectsToShuffle.add(new Case(Subject = 'TestCase7'));
 		List<Case> shuffledObjects = (List<Case>) ApexUtils.shuffle(objectsToShuffle);
 		System.assert(!(objectsToShuffle.get(0).Subject == shuffledObjects.get(0).Subject
 				&& objectsToShuffle.get(1).Subject == shuffledObjects.get(1).Subject
 				&& objectsToShuffle.get(2).Subject == shuffledObjects.get(2).Subject
 				&& objectsToShuffle.get(3).Subject == shuffledObjects.get(3).Subject
-				&& objectsToShuffle.get(4).Subject == shuffledObjects.get(4).Subject));
+				&& objectsToShuffle.get(4).Subject == shuffledObjects.get(4).Subject
+				&& objectsToShuffle.get(2).Subject == shuffledObjects.get(5).Subject
+				&& objectsToShuffle.get(3).Subject == shuffledObjects.get(6).Subject
+				&& objectsToShuffle.get(4).Subject == shuffledObjects.get(7).Subject));
 		insert objectsToShuffle;
 		List<Id> idsToShuffle = new List<Id>();
 		for (Case cas : objectsToShuffle) {
@@ -80,7 +86,10 @@ class ApexUtilsTest {
 				&& idsToShuffle.get(1) == shuffledIds.get(1)
 				&& idsToShuffle.get(2) == shuffledIds.get(2)
 				&& idsToShuffle.get(3) == shuffledIds.get(3)
-				&& idsToShuffle.get(4) == shuffledIds.get(4)));
+				&& idsToShuffle.get(4) == shuffledIds.get(4)
+				&& idsToShuffle.get(2) == shuffledIds.get(5)
+				&& idsToShuffle.get(3) == shuffledIds.get(6)
+				&& idsToShuffle.get(4) == shuffledIds.get(7)));
 	}
 
 	static testmethod void criptoTest() {

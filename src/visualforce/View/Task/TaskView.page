@@ -1,13 +1,45 @@
-<apex:page controller="TaskViewController" title="{!thisTask.Subject}" showChat="true" sidebar="false">
+<apex:page controller="TaskViewController" title="{!thisTask.Subject}" showChat="true" sidebar="false" docType="html-5.0">
 
 	<style>
+        .popUpBackground {
+            background-color: black;
+            opacity: 0.2;
+            filter: alpha(opacity = 20);
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 9998;
+        }
+        .popUpBody {
+            z-index: 9999;
+            border: 1px solid black;
+            border-radius: 3px;
+            padding: 10px;
+            background-color: white;
+            position: fixed;
+            width: 800px;
+            left: 50%;
+            margin-left: -400px;
+            top: 20%;
+        }
+        .tasksWrapper {
+        	height: 150px;
+        	overflow: scroll;
+        }
+        .hidden {
+        	display: none;
+        }
 	</style>
 
 
-	<apex:sectionHeader title="Задача" subtitle="{!thisTask.Subject}" />
+	<apex:sectionHeader title="Задача" subtitle="{!thisTask.Subject}" rendered="{!thisTask != null}" />
+
+	<apex:pageMessage severity="error" rendered="{!errorMessage != null}">{!errorMessage}</apex:pageMessage>
 
 	<apex:form id="TheForm">
-		<apex:pageBlock mode="maindetail">
+		<apex:pageBlock mode="maindetail" rendered="{!thisTask != null}">
 
 			<apex:pageBlockButtons id="TheButtons" location="top">
 				<apex:commandButton value="Новая заявка" onclick="window.open({!baseUrl} + '/apex/Opportunity', '_blank'); window.focus();" />
@@ -16,11 +48,11 @@
 				<apex:commandButton value="Отправить письмо" onclick="showMessage('in development')" />
 				<apex:commandButton value="Прикрепить файл" onclick="showMessage('in development')" />
 				<apex:commandButton value="Редактировать" onclick="window.open({!baseUrl} + '/apex/TaskEdit?id={!thisTask.Id}', '_parent'); window.focus();" />
-				<apex:commandButton value="Завершить" action="{!close}" rendered="{!entity.closable}" />
+				<apex:commandButton value="Завершить" action="{!close}" rendered="{!entity.closable}" rerender="ThePopupForm" oncomplete="fixTable()" />
 				<apex:commandButton value="Удалить" action="{!deleteTask}" rendered="{!deletable}" />
 			</apex:pageBlockButtons>
 
-			<apex:pageBlockSection title="Информация о источнике">
+			<apex:pageBlockSection title="Информация о источнике" rendered="{!thisTask.WhatId != null}">
 				<apex:outputText label="Тип источника" value="{!sourceTypeName}" />
 			</apex:pageBlockSection>
 
@@ -38,7 +70,7 @@
 			</apex:pageBlockSection>
 
 
-			<apex:pageBlockSection title="Информация о клиенте">
+			<apex:pageBlockSection title="Информация о клиенте" rendered="{!thisTask.WhoId != null}">
 				<apex:outputText label="Тип клиента" value="{!thisAccount.Id}" />
 				<apex:outputText label="Телефон" value="{!thisAccount.Phone}" />
 				<apex:outputText label="Имя" value="{!thisAccount.FirstName}" />
@@ -69,8 +101,70 @@
 		</apex:pageBlock>
 	</apex:form>
 
+	<apex:form id="ThePopupForm" rendered="{!entity.closable}">
+		<apex:outputPanel styleClass="popUpBackground" layout="block" rendered="{!closeFormVisible}" />
+		<apex:outputPanel styleClass="popUpBody" layout="block" rendered="{!closeFormVisible}">
+			<apex:pageBlock id="ThePopupBlock">
+				<apex:pageBlockButtons location="top">
+					<apex:commandButton action="{!closeTask}" value="Сохранить" />
+					<apex:commandButton action="{!closeAndCreateTask}" value="Сохранить и создать" rendered="{!entity.newTaskCreatable}" />
+					<apex:commandButton action="{!cancel}" value="Отмена" reRender="ThePopupForm" />
+				</apex:pageBlockButtons>
+				<apex:pageBlockSection>
+					<apex:selectList label="Результат" value="{!entity.result}" size="1" multiselect="false">
+						<apex:selectOptions value="{!results}" />
+						<apex:actionSupport event="onchange" status="setResult" reRender="ThePopupForm" />
+					</apex:selectList>
+					<apex:actionStatus id="setResult">
+						<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
+					</apex:actionStatus>
+					<apex:inputTextarea label="Комментарий" value="{!entity.closeComment}" rows="3" />
+				</apex:pageBlockSection>
+				<apex:pageBlockSection title="Следующая задача" rendered="{!entity.createBlock.visible}">
+					<!--<apex:input label="Дата выполнения" value="{!entity.createBlock.activityDateTime}" type="datetime" />-->
+					<apex:inputTextarea label="Комментарий" value="{!entity.createBlock.comment}" rows="3" />
+				</apex:pageBlockSection>
+				<apex:pageBlockTable id="TasksHeaderTable" title="Другие задачи по клиенту" value="{!relatedTasks}" var="task" rendered="{!relatedTasks != null}" columnClasses="hidden">
+						<apex:column value="{!task.Subject}" />
+						<apex:column value="{!task.What.Name}" />
+						<apex:column value="{!task.Priority}" />
+						<apex:column value="{!task.Goal__c}" />
+				</apex:pageBlockTable>
+				<div class="tasksWrapper">
+					<apex:pageBlockTable id="TasksBodyTable" value="{!relatedTasks}" var="task" rendered="{!relatedTasks != null}" headerClass="hidden">
+						<apex:column value="{!task.Subject}" />
+						<apex:column value="{!task.What.Name}" />
+						<apex:column value="{!task.Priority}" />
+						<apex:column value="{!task.Goal__c}" />
+					</apex:pageBlockTable>
+				</div>
+			</apex:pageBlock>
+		</apex:outputPanel>
+	</apex:form>
+
 
  	<script type="text/javascript">
+		var previousOnload = window.onload;
+
+		window.onload = function() {
+			if (previousOnload) previousOnload();
+			onloadWork();
+		}
+
+		function onloadWork() {
+		}
+
+		function fixTable() {
+			var tableBody = document.getElementById('{!$Component.ThePopupForm.ThePopupBlock.TasksBodyTable}');
+			var tableHeader = document.getElementById('{!$Component.ThePopupForm.ThePopupBlock.TasksHeaderTable}');
+			var rows = tableBody.getElementsByTagName('tr');
+			var headers = tableHeader.getElementsByTagName('th');
+			var columns = rows[0].getElementsByTagName('td');
+			for (var i = 0; i < columns.length; i++) {
+				headers[i].style.width = columns[i].style.width + 'px';
+			}
+		}
+
  		function showMessage(message) {
  			alert(message);
  		}

@@ -49,15 +49,14 @@ public with sharing class DayMemberController {
 		dayMembers					= dayMemberData.getDayMemders();
 		seatType					= getSeatType();
 		statusSendAllTask();
-		for (ApplicationsActivities__c activity : opportunityEvents) {
-			System.debug(activity.OpportunityId__c);
+		/*for (ApplicationsActivities__c activity : opportunityEvents) {
 			if (activity.OpportunityId__r.LoanStatus__c == 'Акт по кредиту сформирован') {
 				isLoan = true;
 				loanStatus = 'Акт по кредиту сформирован';
-			} else {
+			} else {*/
 				savable = true;
-			}
-		}
+			/*}
+		}*/
 	}
 
 	private void statusSendAllTask() {

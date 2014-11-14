@@ -96,7 +96,7 @@ public without sharing class TaskEntity {
 	public TaskEntity(Id taskId) {
 		if (taskId == null) throw new TaskEntityException('Invalid taskId value: \'' + taskId + '\'');
 		try {
-			thisTask = [SELECT Id, WhatId, WhoId, Goal__c, Description FROM Task WHERE Id = :taskId].get(0);
+			thisTask = [SELECT Id, WhatId, WhoId, Goal__c, Description, Status, Priority, Subject FROM Task WHERE Id = :taskId].get(0);
 		} catch (Exception ex) {
 			throw new TaskEntityException('Task for \'' + taskId + '\' id not found');
 		}
@@ -111,7 +111,7 @@ public without sharing class TaskEntity {
 				results.add(matrixRecord.Result__c);
 			}
 		}
-		if (results == null || results.isEmpty()) {
+		if (results == null || results.isEmpty() || thisTask.Status != 'Выполняется') {
 			closable			= false;
 			newTaskCreatable	= false;
 			closeBlock			= new CloseTaskParameters();
@@ -134,7 +134,7 @@ public without sharing class TaskEntity {
 		if (matrix.SourceObjectType__c == 'Opportunity') {
 			Opportunity source = [SELECT Id, StageName, ExpectedPayDate__c FROM Opportunity WHERE Id = :thisTask.WhatId].get(0);
 			source.StageName = matrix.SourceObjectStatus__c;
-			source.ExpectedPayDate__c = closeBlock.possiblePaymentDate.date();
+			if (matrix.PossiblePaymentDateEditable__c) source.ExpectedPayDate__c = closeBlock.possiblePaymentDate.date();
 			if (matrix.IsFullDeligation__c) source.OwnerId = getOwnerId(matrix);
 			toUpdate.add(source);
 		} else if (matrix.SourceObjectType__c == 'Case') {
@@ -158,16 +158,16 @@ public without sharing class TaskEntity {
 			toUpdate.add(source);
 		}
 		if (!matrix.IsFinal__c || matrix.IsAutoTask__c) {
-			insert new Task(ActivityDateTime__c = createBlock.activityDateTime, // ???
+			insert new Task(ActivityDateTime__c = createBlock.activityDateTime,
 							WhatId = thisTask.WhatId,
 							WhoId = (whoId == null ? thisTask.WhoId : whoId),
 							Goal__c = thisTask.Goal__c,
-							Subject = 'EMPTY SUBJECT',
+							Subject = thisTask.Subject + ' | ',
 							Description = createBlock.comment,
 							ContactType__c = createBlock.communicationType,
 							Contacts__c = 'Исходящий',
 							OwnerId = getOwnerId(matrix),
-							Priority = '3');		// TODO
+							Priority = (matrix.IsAutoTask__c ? '3': thisTask.Priority));
 		}
 		if (!toUpdate.isEmpty()) update toUpdate;
 	}

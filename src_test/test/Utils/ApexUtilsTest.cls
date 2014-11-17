@@ -97,4 +97,12 @@ class ApexUtilsTest {
 		System.assertEquals(secret, ApexUtils.decript(ApexUtils.encript(secret)));
 	}
 
+	static testmethod void getProfileTest() {
+		String profileKey = 'test profile';
+		Id profileId = [SELECT Id FROM User LIMIT 1].get(0).Id;	// ANY REAL OBJECT ID
+		insert new OrganizationProfiles__c(Name = profileKey, Id__c = profileId);
+		System.assertEquals(profileKey, ApexUtils.getProfileKeyById(profileId));
+		System.assertEquals(profileId, ApexUtils.getProfileIdByKey(profileKey));
+	}
+
 }

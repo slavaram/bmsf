@@ -53,6 +53,7 @@
 			</apex:pageBlockButtons>
 
 			<apex:pageBlockSection title="Информация о источнике" rendered="{!thisTask.WhatId != null}">
+				<apex:outputText label="Id" value="{!thisTask.WhatId}" />
 				<apex:outputText label="Тип источника" value="{!sourceTypeName}" />
 			</apex:pageBlockSection>
 
@@ -119,11 +120,16 @@
 						<apex:facet name="start"><img src="{!$Resource.ImgLoader}"/></apex:facet>
 					</apex:actionStatus>
 					<apex:inputTextarea label="Комментарий" value="{!entity.closeComment}" rows="3" />
+					<apex:outputText label="Дата оплаты" value="NOW" rendered="{!entity.closeBlock.possiblePaymentDate != null}" />
 				</apex:pageBlockSection>
 				<apex:pageBlockSection title="Следующая задача" rendered="{!entity.createBlock.visible}">
-					<!--<apex:input label="Дата выполнения" value="{!entity.createBlock.activityDateTime}" type="datetime" />-->
+					<apex:outputText label="Дата выполнения" value="NOW" />
+					<apex:outputText label="Тип коммуникации" value="?" />
+					<apex:outputText label="Ответственный" value="YOU" />
 					<apex:inputTextarea label="Комментарий" value="{!entity.createBlock.comment}" rows="3" />
 				</apex:pageBlockSection>
+
+				<!--
 				<apex:pageBlockTable id="TasksHeaderTable" title="Другие задачи по клиенту" value="{!relatedTasks}" var="task" rendered="{!relatedTasks != null}" columnClasses="hidden">
 						<apex:column value="{!task.Subject}" />
 						<apex:column value="{!task.What.Name}" />
@@ -138,6 +144,8 @@
 						<apex:column value="{!task.Goal__c}" />
 					</apex:pageBlockTable>
 				</div>
+				-->
+
 			</apex:pageBlock>
 		</apex:outputPanel>
 	</apex:form>

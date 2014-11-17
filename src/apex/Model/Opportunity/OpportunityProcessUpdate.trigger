@@ -31,7 +31,7 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 					}
 				}
 			}
-			insert toInsert;																											// SELF INVOCATION
+			insert toInsert;																													// SELF INVOCATION
 		}
 
 		List<id> listOpportunityId = new List<id>();
@@ -59,7 +59,7 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
                                                FROM ApplicationsActivities__c
                                                WHERE OpportunityId__c IN :trigger.newMap.keySet()
                                                  AND OpportunityId__r.StageName IN ('Условно оплачена', 'Оплачено', 'Частичная оплата')];
-		 update activities;
+		 update activities;																													// SELF INVOCATION
 		 for(ProductRoles__c par : ProductRoles__c.getAll().values()) {
 		     bmOpportunity.createAccountRoleForUpdate(activities, par.ProductName__c, par.RoleNumber__c);
 		 }

@@ -40,8 +40,9 @@ public class UserGroupManagerTest {
 	}
 
 	static testmethod void allManagersGroupCasesAllocationTest() {
+		DataManager.initOrgSettings();
 		User userOne = [SELECT Id FROM User WHERE IsActive = true LIMIT 10].get(0);
-		User userTwo = [SELECT Id FROM User WHERE IsActive = true AND Profile.Name = 'Менеджер' LIMIT 10].get(1);
+		User userTwo = [SELECT Id FROM User WHERE IsActive = true AND ProfileId = :ApexUtils.getProfileIdByKey('manager') LIMIT 10].get(1);
 		insert new UserGroupMembers__c(Name = '00000000', GroupName__c = 'Index', MemberId__c = '0');
 		UserGroupManager.addGroupMembers('AllManagersGroup', new Set<Id> {userOne.Id});
 		insert new UserGroupFilters__c(Name = 'AllManagersGroup Case.Subject',
@@ -59,8 +60,9 @@ public class UserGroupManagerTest {
 	}
 
 	static testmethod void possibleAccountOwnersGroupCasesAllocationTest() {
+		DataManager.initOrgSettings();
 		User userOne = [SELECT Id FROM User WHERE IsActive = true LIMIT 10].get(0);
-		User userTwo = [SELECT Id FROM User WHERE IsActive = true AND Profile.Name = 'Менеджер' LIMIT 10].get(1);
+		User userTwo = [SELECT Id FROM User WHERE IsActive = true AND ProfileId = :ApexUtils.getProfileIdByKey('manager') LIMIT 10].get(1);
 		insert new UserGroupMembers__c(Name = '00000000', GroupName__c = 'Index', MemberId__c = '0');
 		UserGroupManager.addGroupMembers('PossibleAccountOwners', new Set<Id> {userOne.Id});
 		insert new UserGroupFilters__c(Name = 'PossibleAccountOwners PossibleAccount',

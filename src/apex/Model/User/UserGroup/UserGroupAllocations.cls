@@ -1,5 +1,11 @@
 public class UserGroupAllocations {
 
+	private String managerId;
+
+	public UserGroupAllocations() {
+		managerId = ApexUtils.getProfileIdByKey('manager');
+	}
+
 	public List<sObject> allocate(List<sObject> objectEntities, UserGroup userGroup) {
 		if (objectEntities == null || objectEntities.size() == 0 || userGroup.members.size() == 0) {
 			return new List<sObject>();
@@ -102,7 +108,7 @@ public class UserGroupAllocations {
 			if (cas.AccountId != null) accountIds.add(cas.AccountId);
 		}
 		Map<Id, Id> accountAndOwner = new Map<Id, Id>();
-		for (Account acc : [SELECT Id, OwnerId FROM Account WHERE Id IN :accountIds AND Owner.Profile.Name = 'Менеджер' AND Owner.IsActive = true]) {
+		for (Account acc : [SELECT Id, OwnerId FROM Account WHERE Id IN :accountIds AND Owner.ProfileId = :managerId AND Owner.IsActive = true]) {
 			accountAndOwner.put(acc.Id, acc.OwnerId);
 		}
 		List<Case> toAllocate = new List<Case>();
@@ -119,7 +125,7 @@ public class UserGroupAllocations {
 			List<AggregateResult> dailyRate = [SELECT OwnerId caseOwner, COUNT(ID) casesCount
 			                                   FROM Case
 			                                   WHERE CreatedDate >= TODAY
-			                                   AND Owner.Profile.Name = 'Менеджер'
+			                                   AND Owner.ProfileId = :managerId
 			                                   AND Owner.IsActive = true
 			                                   GROUP BY OwnerId];
 			Map<Id, Integer> managerCaseNumber = new Map<Id, Integer>();
@@ -169,7 +175,7 @@ public class UserGroupAllocations {
 				accAndOwner.put(possibleAccount.RecommendedBy__c, null);
 			}
 		}
-		for (Account acc : [SELECT Id, OwnerId FROM Account WHERE Id IN :accAndOwner.keySet() AND OwnerId != null AND Owner.Profile.Name = 'Менеджер' AND Owner.IsActive = true]) {
+		for (Account acc : [SELECT Id, OwnerId FROM Account WHERE Id IN :accAndOwner.keySet() AND OwnerId != null AND Owner.ProfileId = :managerId AND Owner.IsActive = true]) {
 			accAndOwner.put(acc.Id, acc.OwnerId);
 		}
 		Map<Id, List<PossibleAccount__c>> tempMap = new Map<Id, List<PossibleAccount__c>>();

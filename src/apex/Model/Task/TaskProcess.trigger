@@ -1,12 +1,6 @@
 trigger TaskProcess on Task (before insert,
 							 before update) {
 
-	try {
-		TaskMethods.setWhoId(trigger.new);
-	} catch (Exception ex) {
-		System.debug(LoggingLevel.ERROR, ex.getMessage());
-	}
-
 	if (trigger.isBefore) {
 		for (Task tas : trigger.new) {
 			if (tas.ActivityDate == null && tas.ActivityDateTime__c != null) tas.ActivityDate = tas.ActivityDateTime__c.date();

@@ -210,8 +210,10 @@
 	 			window.focus();
 	 			refreshWithTask();
  			} else {
- 				j$('#MessageHolder').css('left', event.clientX)
- 									.css('top', event.clientY)
+				var top = event.clientY - j$('.bodyDiv').offset().top;
+				var left = event.clientX - j$('.bodyDiv').offset().left;
+ 				j$('#MessageHolder').css('left', left + 'px')
+ 									.css('top', top + 'px')
  									.fadeToggle(100);
 				setTimeout(function() {
 								j$('#MessageHolder').fadeToggle('slow');

@@ -44,8 +44,6 @@ trigger PossibleAccountProcess on PossibleAccount__c (before insert, after inser
 			}
 			if (!likeAccountsFound) descriptionBody = '';
 		}
-		
-		TaskMethods.createTask(trigger.new);
 	}
 
 }

@@ -7,6 +7,8 @@ public with sharing class TaskViewController {
 	public Boolean deletable		{get; private set;}
 	public String sourceTypeName	{get; private set;}
 	public List<Task> relatedTasks	{get; private set;}
+	public List<Bean> beans			{get; private set;}
+	public Boolean noBeansFound		{get; private set;}
 
 	public String errorMessage		{get; private set;}
 	public Boolean closeFormVisible	{get; private set;}
@@ -22,12 +24,51 @@ public with sharing class TaskViewController {
 																					  'Opportunity' => 'Заявка',
 																					  'PossibleAccount__c' => 'Рекомендация'};
 
+	public class Bean {
+		public String objectName	{get; private set;}
+		public Id objectId			{get; private set;}
+		public Boolean isCase		{get; private set;}
+		public String type			{get; private set;}
+		public String productName	{get; private set;}
+		public String productId		{get; private set;}
+		public Integer flow			{get; private set;}
+		public String ownerName		{get; private set;}
+		public Id ownerId			{get; private set;}
+		public String status		{get; private set;}
+		public String statusUpdateDate	{get; private set;}
+		public Decimal cost			{get; private set;}
+		public Bean(Case cas) {
+			objectName		 	= cas.Subject;
+			objectId			= cas.Id;
+			isCase				= true;
+			type				= cas.Type;
+			ownerName			= cas.Owner.Name;
+			ownerId				= cas.OwnerId;
+			status				= cas.Status;
+			statusUpdateDate	= ApexUtils.dateToString(cas.StatusUpdateDate__c.date());
+		}
+		public Bean(Opportunity opp) {
+			objectName		 	= opp.Name;
+			objectId			= opp.Id;
+			isCase				= false;
+			productName			= opp.ProductId__r.Name;
+			productId			= opp.ProductId__c;
+			ownerName			= opp.Owner.Name;
+			ownerId				= opp.OwnerId;
+			status				= opp.StageName;
+			statusUpdateDate	= ApexUtils.dateToString(opp.StatusUpdateDate__c.date());
+			cost				= opp.Amount;
+		}
+	}
+
 	{
-		baseUrl = System.URL.getSalesforceBaseUrl().toExternalForm();
-		deletable = (ApexUtils.getProfileKeyById(UserInfo.getProfileId()) == 'manager' ? false : true);
-		closeFormVisible = false;
-		errorMessage = null;
-		results = new List<SelectOption>();
+		baseUrl				= System.URL.getSalesforceBaseUrl().toExternalForm();
+		deletable			= (ApexUtils.getProfileKeyById(UserInfo.getProfileId()) == 'manager' ? false : true);
+		closeFormVisible	= false;
+		errorMessage		= null;
+		results				= new List<SelectOption>();
+		beans				= new List<Bean>();
+		noBeansFound		= true;
 	}
 
 	public TaskViewController() {
@@ -77,8 +118,10 @@ public with sharing class TaskViewController {
 			            FROM Task
 			            WHERE Id = :taskId].get(0);
 			entity = new TaskEntity(taskId);
-		} catch (Exception ex) {
+		} catch (ListException ex) {
 			return 'Задача не найдена';
+		} catch (Exception ex) {
+			return ex.getMessage();
 		}
 		try {
 			sourceType = thisTask.WhatId.getSObjectType().getDescribe().getName();
@@ -95,6 +138,17 @@ public with sharing class TaskViewController {
 			return 'Не найден клиент по данной задаче' ;
 		}
 
+		for (Case cas : [SELECT Id, Subject, Type, Status, StatusUpdateDate__c, OwnerId, Owner.Name FROM Case WHERE AccountId = :thisAccount.Id]) {
+			try {
+				beans.add(new Bean(cas));
+			} catch (Exception ex) { System.debug(ex.getMessage()); }
+		}
+		for (Opportunity opp : [SELECT Id, Name, ProductId__c, ProductId__r.Name, StageName, StatusUpdateDate__c, Amount, OwnerId, Owner.Name FROM Opportunity WHERE AccountId = :thisAccount.Id]) {
+			try {
+				beans.add(new Bean(opp));
+			} catch (Exception ex) { System.debug(ex.getMessage()); }
+		}
+		if (!beans.isEmpty()) noBeansFound = false;
 		relatedTasks = [SELECT Id, Subject, Status, What.Name, Goal__c, Priority
 		                FROM Task
 		                WHERE WhoId = :thisTask.WhoId

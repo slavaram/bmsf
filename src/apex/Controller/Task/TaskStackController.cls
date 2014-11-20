@@ -79,7 +79,6 @@ public with sharing class TaskStackController {
 			return null;
 		} else {
 			try {
-				System.debug(EncodingUtil.urlDecode(taskParameter, 'UTF-8'));
 				Id objectId = Id.valueOf(ApexUtils.decript(EncodingUtil.urlDecode(taskParameter, 'UTF-8').replace(' ', '+')));
 				if (objectId != null && objectId.getSObjectType().getDescribe().getName() == 'Task') {
 					update new Task(Id = objectId, Status = TASK_STAGE_IN_PROGESS);
@@ -88,7 +87,19 @@ public with sharing class TaskStackController {
 					CampaignMember member = [SELECT Id, CampaignId, ContactId, Contact.AccountId, Campaign.Priority__c, Campaign.Goal__c
 					                         FROM CampaignMember
 					                         WHERE Id = :objectId].get(0);
-					return new PageReference(System.URL.getSalesforceBaseUrl().toExternalForm() + (UserInfo.getUserId() == '0051100000144kpAAA' ? '/apex/TaskView?id=' : '/') + TaskMethods.createTask(member, (Id) UserInfo.getUserId()));
+					System.debug('member selected');
+					Task newTask = new Task(Subject				= CAMPAIGN_TASK_SUBJECT,
+											Status				= TASK_STAGE_IN_PROGESS,
+											WhatId				= member.CampaignId,
+											WhoId				= member.ContactId,
+											isGetNewTask__c		= true,
+											Priority			= member.Campaign.Priority__c,
+											Goal__c				= member.Campaign.Goal__c,
+											OwnerId				= UserInfo.getUserId(),
+											ActivityDateTime__c	= System.now());
+					insert newTask;
+					System.debug('task inserted');
+					return new PageReference(System.URL.getSalesforceBaseUrl().toExternalForm() + (UserInfo.getUserId() == '0051100000144kpAAA' ? '/apex/TaskView?id=' : '/') + newTask.Id);
 				} else {
 					refresh();
 					return null;
@@ -153,7 +164,6 @@ public with sharing class TaskStackController {
 		String baseUrl		= System.URL.getSalesforceBaseUrl().toExternalForm();
 		String pageUrl		= ApexPages.currentPage().getUrl().substringBefore('?');
 		String parameters	= '?' + REQUEST_PARAMETER_TASK + '=' + EncodingUtil.urlEncode(ApexUtils.encript(String.valueOf(objectId)), 'UTF-8');
-		System.debug(ApexUtils.encript(String.valueOf(objectId)));
 		return baseUrl + pageUrl + parameters;
 	}
 

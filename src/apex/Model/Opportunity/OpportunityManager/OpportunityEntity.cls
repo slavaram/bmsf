@@ -192,15 +192,7 @@ global class OpportunityEntity {
 		                                            AND ActionID__r.RegistrationEndDate__c >= :DateTime.now()];
 		List<String> actionIds = new List<String>();
 		for (AvailableEvents__c event : availableEvents) {
-			if (event.Product__c == '01tb00000008prgAAA') {
-				if (event.ActionID__r.ParentId__c != 'a00b000000HLkAtAAL') actionIds.add(event.ActionID__c);
-			} else if (event.Product__c == '01tb00000008bYQAAY') {
-				if (event.ActionID__r.ParentId__c != 'a00b000000IC16PAAT') actionIds.add(event.ActionID__c);
-			} else if (event.Product__c == '01tb0000002gRQyAAM') {
-				if (event.ActionID__r.ParentId__c != 'a00b000000I9zq2AAB') actionIds.add(event.ActionID__c);
-			} else {
-				actionIds.add(event.ActionID__c);
-			}
+			actionIds.add(event.ActionID__c);
 		}
 		createListActions(selectActionByIds(actionIds, null));
 	}

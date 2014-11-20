@@ -28,9 +28,25 @@
         	height: 150px;
         	overflow: scroll;
         }
+        .casesWrapper {
+        	height: 200px;
+        	overflow: scroll;
+        }
         .hidden {
         	display: none;
         }
+		.width250 {
+			width: 250px;
+		}
+		.width100 {
+			width: 100px;
+		}
+		.width50 {
+			width: 50px;
+		}
+		.width9 {
+			width: 9px;
+		}
 	</style>
 
 
@@ -48,7 +64,7 @@
 				<apex:commandButton value="Отправить письмо" onclick="showMessage('in development')" />
 				<apex:commandButton value="Прикрепить файл" onclick="showMessage('in development')" />
 				<apex:commandButton value="Редактировать" onclick="window.open({!baseUrl} + '/apex/TaskEdit?id={!thisTask.Id}', '_parent'); window.focus();" />
-				<apex:commandButton value="Завершить" action="{!close}" rendered="{!entity.closable}" rerender="ThePopupForm" oncomplete="fixTable()" />
+				<apex:commandButton value="Завершить" action="{!close}" rendered="{!entity.closable}" rerender="ThePopupForm" />
 				<apex:commandButton value="Удалить" action="{!deleteTask}" rendered="{!deletable}" />
 			</apex:pageBlockButtons>
 
@@ -86,12 +102,37 @@
 			</apex:pageBlockSection>
 
 
-			<apex:pageBlockSection title="Заявки и запросы клиента">
-				table..
+			<apex:pageBlockSection title="Заявки и запросы" rendered="{!thisTask.WhoId != null}" columns="1">
+				<apex:outputPanel rendered="{!!noBeansFound}">
+					<apex:pageBlockTable id="CaseTableHeader" value="{!beans}" var="bean" columnClasses="hidden">
+						<apex:column value="{!bean.objectName}" headerValue="Название" />
+						<apex:column value="{!bean.type}" headerValue="Тип" headerClass="width100" />
+						<apex:column value="{!bean.productName}" headerValue="Продукт" headerClass="width250" />
+						<apex:column value="{!bean.flow}" headerValue="Поток" headerClass="width50" />
+						<apex:column value="{!bean.ownerName}" headerValue="Ответственный" headerClass="width250" />
+						<apex:column value="{!bean.status}" headerValue="Статус" headerClass="width100" />
+						<apex:column value="{!bean.statusUpdateDate}" headerValue="Дата смены статуса" headerClass="width100" />
+						<apex:column value="{!bean.cost}" headerValue="Цена" headerClass="width100" />
+						<apex:column headerClass="width9" />
+					</apex:pageBlockTable>
+					<div class="casesWrapper">
+						<apex:pageBlockTable id="CaseTableBody" value="{!beans}" var="bean" headerClass="hidden">
+							<apex:column><apex:outputLink value="/{!bean.objectId}" target="_parent">{!bean.objectName}</apex:outputLink></apex:column>
+							<apex:column value="{!bean.type}" styleClass="width100" />
+							<apex:column styleClass="width250"><apex:outputLink value="/{!bean.productId}" target="_parent">{!bean.productName}</apex:outputLink></apex:column>
+							<apex:column value="{!bean.flow}" styleClass="width50" />
+							<apex:column styleClass="width250"><apex:outputLink value="/{!bean.ownerId}" target="_parent">{!bean.ownerName}</apex:outputLink></apex:column>
+							<apex:column value="{!bean.status}" styleClass="width100" />
+							<apex:column value="{!bean.statusUpdateDate}" styleClass="width100" />
+							<apex:column value="{!bean.cost}" styleClass="width100" />
+						</apex:pageBlockTable>
+					</div>
+				</apex:outputPanel>
+				<apex:outputText value="Ничего не найдено" rendered="{!noBeansFound}" />
 			</apex:pageBlockSection>
 
 
-			<apex:pageBlockSection title="Журнал касаний клиента">
+			<apex:pageBlockSection title="Журнал касаний">
 				table..
 			</apex:pageBlockSection>
 
@@ -160,17 +201,6 @@
 		}
 
 		function onloadWork() {
-		}
-
-		function fixTable() {
-			var tableBody = document.getElementById('{!$Component.ThePopupForm.ThePopupBlock.TasksBodyTable}');
-			var tableHeader = document.getElementById('{!$Component.ThePopupForm.ThePopupBlock.TasksHeaderTable}');
-			var rows = tableBody.getElementsByTagName('tr');
-			var headers = tableHeader.getElementsByTagName('th');
-			var columns = rows[0].getElementsByTagName('td');
-			for (var i = 0; i < columns.length; i++) {
-				headers[i].style.width = columns[i].style.width + 'px';
-			}
 		}
 
  		function showMessage(message) {

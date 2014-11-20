@@ -52,7 +52,7 @@ public without sharing class TaskEntity {
 			get;
 			set {
 				if (activityDateTime != null && value == null) throw new TaskEntityException('ActivityDateTime can not be set to null for this result');
-				if (value <= System.now()) throw new TaskEntityException('Дата выполнения задачи должна быть будущая');
+				if (value < System.now().addMinutes(-1)) throw new TaskEntityException('Дата выполнения задачи должна быть будущая');
 				activityDateTime = value;
 			}
 		}
@@ -118,6 +118,7 @@ public without sharing class TaskEntity {
 			closeBlock			= new CloseTaskParameters();
 			createBlock			= new CreateTaskParameters();
 		} else {
+			results.sort();
 			result = results.get(0);
 		}
 	}
@@ -181,13 +182,16 @@ public without sharing class TaskEntity {
 
 	private void updateParameters() {
 		TaskResultsMatrix__c matrix				= resultMatrix.get(result);
-		List<String> reasons						= (String.isBlank(matrix.Causes__c) ? null : matrix.Causes__c.split(';'));
+		List<String> reasons					= (String.isBlank(matrix.Causes__c) ? null : matrix.Causes__c.split(';'));
+		if (reasons != null) reasons.sort();
 		closeBlock = new CloseTaskParameters(   (!String.isBlank(matrix.Causes__c) || matrix.PossiblePaymentDateEditable__c),
 												(reasons == null || reasons.isEmpty() ? null : reasons.get(0)),
 												reasons,
 												(matrix.PossiblePaymentDateEditable__c ? System.now() : null));
 		List<String> communicationTypes			= SObjectUtils.getObjectPickListFieldLabels('Task', 'ContactType__c');
 		List<Id> ownerIds						= getOwnerIds(matrix.NewOwner__c);
+		if (communicationTypes != null) communicationTypes.sort();
+		if (ownerIds != null) reasons.sort();
 		createBlock	= new CreateTaskParameters( !matrix.IsFinal__c,
 												System.now(),
 												communicationTypes.get(0),
@@ -220,7 +224,9 @@ public without sharing class TaskEntity {
 		if (matrix.NewOwner__c == null) {
 			return UserInfo.getUserId();
 		} else if (matrix.NewOwner__c == 'to senior manager') {
-			return [SELECT Id, ManagerId FROM User WHERE Id = :UserInfo.getUserId()].get(0).ManagerId;
+			Id seniorManagerId = [SELECT Id, ManagerId FROM User WHERE Id = :UserInfo.getUserId()].get(0).ManagerId;
+			if (seniorManagerId == null) throw new TaskEntityException('У вас нет старшего менеджера');
+			return seniorManagerId;
 		} else if (matrix.NewOwner__c == 'to account manager' || matrix.NewOwner__c == 'to support manager' || matrix.NewOwner__c == 'to issue manager') {
 			String profileKey = matrix.NewOwner__c.substringAfter('to ');
 			List<User> users = [SELECT Id FROM User WHERE ProfileId = :ApexUtils.getProfileIdByKey(profileKey)];

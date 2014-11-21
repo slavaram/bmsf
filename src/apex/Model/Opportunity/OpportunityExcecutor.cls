@@ -22,7 +22,7 @@ public with sharing class OpportunityExcecutor {
 		Map<Id, Set<Id>> result = new Map<Id, Set<Id>>();
 		if (mapOpp != null) {
 			for (Opportunity opp : mapOpp.values()) {
-				Set<Id> setActionIds = OpportunityMethod.oppToActionIdSet(opp);
+				Set<Id> setActionIds = OpportunityMethods.parceOpportunityActionIds(opp);
 				if (!setActionIds.IsEmpty()) result.put(opp.Id, setActionIds);
 			}
 		}

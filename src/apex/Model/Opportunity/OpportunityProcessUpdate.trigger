@@ -48,7 +48,7 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 		                                              AND OpportunityId__r.StageName IN ('Условно оплачена', 'Оплачено', 'Частичная оплата')];
 		update activities;																														// SELF INVOCATION
 		for (ProductRoles__c par : ProductRoles__c.getAll().values()) {
-		    OpportunityMethods.createAccountRoleForUpdate(activities, par.ProductName__c, par.RoleNumber__c);										// ?????
+		    OpportunityMethods.createAccountRoleForUpdate(activities, par.ProductName__c, par.RoleNumber__c);									// ?????
 		}
 
 		for (Opportunity oldOpp : trigger.old) {

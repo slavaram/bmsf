@@ -2,7 +2,7 @@ public class OpportunityMethods {
 
 	public static Boolean DONE = false;
 
-	public class ApplicationsActivitiesManager {
+	public class ApplicationsActivitiesManager {												// apex class that divides trigger and server scopes (trik against sf master-detail)
 
 		public void doCrete(List<Opportunity> opportunities) {
 			List<ApplicationsActivities__c> toInsert = new List<ApplicationsActivities__c>();

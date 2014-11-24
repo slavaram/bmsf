@@ -31,9 +31,9 @@ public with sharing class OpportunityExcecutor {
 
 	private List<ApplicationsActivities__c> actionToDelete(Map<Id, Opportunity> newOpps, Map<Id, Set<Id>> mapNewOppToActionIdSet, Map<Id, Set<Id>> mapOldOppToActionIdSet) {
 		if (newOpps == null || newOpps.size() < 1 || mapOldOppToActionIdSet == null) return null;
-		Set<Id> setOfIdsToDelete = new Set<Id>();
-		List<ApplicationsActivities__c> result = new List<ApplicationsActivities__c>();
-		for(Opportunity oppItem : newOpps.values()) {
+		List<ApplicationsActivities__c> result	= new List<ApplicationsActivities__c>();
+		Set<Id> setOfIdsToDelete				= new Set<Id>();
+		for (Opportunity oppItem : newOpps.values()) {
 			Set<Id> newOppActionIdSet = mapNewOppToActionIdSet.get(oppItem.Id);
 			Set<Id> oldOppActionIdSet = mapOldOppToActionIdSet.get(oppItem.Id);
 			if (newOppActionIdSet != null && !newOppActionIdSet.IsEmpty() && oldOppActionIdSet != null)	oldOppActionIdSet.removeAll(newOppActionIdSet);

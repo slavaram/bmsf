@@ -122,6 +122,31 @@ public class OpportunityMethods {
 		return result;
 	}
 
+	public static void creteApplicationsActivities(List<Opportunity> opportunities) {
+		List<ApplicationsActivities__c> toInsert = new List<ApplicationsActivities__c>();
+		for (Opportunity opp : opportunities) {
+			if (opp.ActionIds__c != null) {
+				for (String actionId : parceOpportunityActionIds(opp.ActionIds__c)) {
+					toInsert.add(new ApplicationsActivities__c(ActionID__c = actionId, OpportunityId__c = opp.Id));
+				}
+			}
+		}
+		if (!toInsert.isEmpty()) insert toInsert;
+	}
+
+	public static void updateApplicationsActivities(Map<Id, Opportunity> oldOpportunities, Map<Id, Opportunity> newOpportunities) {
+		List<ApplicationsActivities__c>	= new List<ApplicationsActivities__c>();
+		List<Id> opportunitiesToDelete	= new List<Id>();
+		List<Id> activitiesToDelete		= new List<Id>();
+		for (Id oppId : oldOpportunities.values()) {
+			Set<Id> oldActions = parceOpportunityActionIds(oldOpportunities.get(oppId).ActionIds__c);
+			Set<Id> newActions = parceOpportunityActionIds(newOpportunities.get(oppId).ActionIds__c);
+			if (!oldActions.isEmpty() && oldActions != newActions) {
+				
+			}
+		}
+	}
+
     public static void createAccountRoleForInsert(List<Opportunity> opps, String actionName, Decimal role) {
         List<StudyMember__c> roles = new List<StudyMember__c>();
         Map<Id, Set<Id>> mapActionsId = new Map<Id, Set<Id>>();

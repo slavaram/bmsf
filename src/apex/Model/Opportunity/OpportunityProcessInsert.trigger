@@ -67,17 +67,8 @@ trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 	    		productIds.add(opp.ProductId__c);
 	    	}
 	    }
-	    insert OpportunityMethods.createOpportunityLineItems(opportunities, productIds);											// ONE MORE MEGA FAIL !!!!!!!!!
-
-	    for (Opportunity opp : trigger.new) {
-	        if (opp.ActionIds__c != null) {
-	            Set<Id> actionIds = OpportunityMethods.parceOpportunityActionIds(opp.ActionIds__c);
-	            for (Id actionId : actionIds) {
-	            	toInsert.add(new ApplicationsActivities__c(ActionID__c = actionId, OpportunityId__c = opp.Id));
-	            }
-	        }
-	    }
-		if (!toInsert.isEmpty()) insert toInsert;																						// YEAP, MEGA FAIL AGAIN !!!!!!!!!
+	    insert OpportunityMethods.createOpportunityLineItems(opportunities, productIds);												// ONE MORE MEGA FAIL !!!!!!!!!
+		OpportunityMethods.creteApplicationsActivities(trigger.new);																	// YEAP, MEGA FAIL AGAIN !!!!!!!!!
 
 		try {																															// ??????
 		    for (ProductRoles__c par : ProductRoles__c.getAll().values()) {

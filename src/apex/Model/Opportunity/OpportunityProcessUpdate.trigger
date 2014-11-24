@@ -10,20 +10,7 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 		List<sObject> toInsert = new List<sObject>();
 		if (!OpportunityMethods.DONE) {
 			OpportunityMethods.DONE = true;
-			OpportunityExcecutor oppExcecutor = new OpportunityExcecutor();
-			oppExcecutor.deleteNonActualActivitesBeforeUpdate(trigger.newMap, trigger.oldMap);
-
-			for (Opportunity opp : trigger.new) {
-				Opportunity oppOld = trigger.oldMap.get(opp.Id);
-				if (opp.ActionIds__c != oppOld.ActionIds__c) {
-					Set<Id> actionIds = OpportunityMethods.parceOpportunityActionIds(opp.ActionIds__c);
-					Set<Id> actionIdsOld = OpportunityMethods.parceOpportunityActionIds(oppOld.ActionIds__c);
-					actionIds.removeAll(actionIdsOld);
-					for (Id actId : actionIds) {
-						toInsert.add(new ApplicationsActivities__c(ActionID__c = actId, OpportunityId__c = opp.Id));							// SELF INVOCATION
-					}
-				}
-			}
+			OpportunityMethods.updateApplicationsActivities(trigger.oldMap, trigger.newMap);															// SELF INVOCATION
 		}
 
 		List<id> opportunityIds = new List<id>();

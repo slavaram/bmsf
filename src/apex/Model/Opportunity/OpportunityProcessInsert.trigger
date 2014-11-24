@@ -36,18 +36,17 @@ trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 					if (!doubleClients.isEmpty()) {
 						client.OwnerId = doubleClients.get(0).OwnerId;
 						toUpdate.put(client.Id, client);
-					} else {
-						opp.CleanOpp__c = true;
-						CustomBMAllocation allocation = new CustomBMAllocation(opp, (String) client.OwnerId, adminId);					// MEGA FAIL !!!!!!!!!!!!!!!
-						Id oppOwnerId = allocation.getUserForOpportunity();
-						if (oppOwnerId != null) {
-							opp.OwnerId = oppOwnerId;
-							opp.isAllocated__c = true;
-							if (client.OwnerId == adminId || !client.Owner.IsActive) {
-	                            client.OwnerId = oppOwnerId;
-	    						toUpdate.put(client.Id, client);
-	                        }
-						}
+					}
+					if (client.OwnerId == adminId) opp.CleanOpp__c = true;
+					CustomBMAllocation allocation = new CustomBMAllocation(opp, (String) client.OwnerId, adminId);						// MEGA FAIL !!!!!!!!!!!!!!!
+					Id oppOwnerId = allocation.getUserForOpportunity();
+					if (oppOwnerId != null) {
+						opp.OwnerId = oppOwnerId;
+						opp.isAllocated__c = true;
+						if (client.OwnerId == adminId || !client.Owner.IsActive) {
+	                           client.OwnerId = oppOwnerId;
+	    					toUpdate.put(client.Id, client);
+	                    }
 					}
 				}
 			} catch (Exception e) {}

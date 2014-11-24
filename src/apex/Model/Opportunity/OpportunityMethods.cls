@@ -2,6 +2,70 @@ public class OpportunityMethods {
 
 	public static Boolean DONE = false;
 
+	public class ApplicationsActivitiesManager {
+
+		public void doCrete(List<Opportunity> opportunities) {
+			List<ApplicationsActivities__c> toInsert = new List<ApplicationsActivities__c>();
+			for (Opportunity opp : opportunities) {
+				if (opp.ActionIds__c != null) {
+					for (String actionId : parceOpportunityActionIds(opp.ActionIds__c)) {
+						toInsert.add(new ApplicationsActivities__c(ActionID__c = actionId, OpportunityId__c = opp.Id));
+					}
+				}
+			}
+			if (!toInsert.isEmpty()) insert toInsert;
+		}
+
+		public void doUpdate(Map<Id, Opportunity> oldOpportunities, Map<Id, Opportunity> newOpportunities) {
+			List<ApplicationsActivities__c> toInsert	= new List<ApplicationsActivities__c>();
+			List<ApplicationsActivities__c> toDelete	= new List<ApplicationsActivities__c>();
+			Set<Id> opportunitiesToDelete				= new Set<Id>();
+			Set<Id> activitiesToDelete					= new Set<Id>();
+			Map<Id, Set<Id>> oppAndActionsToDelete		= new Map<Id, Set<Id>>();
+			for (Id oppId : oldOpportunities.keySet()) {
+				Set<Id> oldActions = parceOpportunityActionIds(oldOpportunities.get(oppId).ActionIds__c);
+				Set<Id> newActions = parceOpportunityActionIds(newOpportunities.get(oppId).ActionIds__c);
+				System.debug('old -> ' + oldActions);
+				System.debug('new -> ' + newActions);
+				if ((!oldActions.isEmpty() || !newActions.isEmpty()) && oldActions != newActions) {
+					Set<Id> thisOppActions	= new Set<Id>();
+					Set<Id> toAdd			= new Set<Id>(newActions);
+					Set<Id> toRemove		= new Set<Id>(oldActions);
+					toAdd.removeAll(oldActions);
+					toRemove.removeAll(newActions);
+					System.debug('toAdd -> ' + toAdd);
+					System.debug('toRemove -> ' + toRemove);
+					for (Id actionId : toAdd) {
+						toInsert.add(new ApplicationsActivities__c(ActionID__c = actionId, OpportunityId__c = oppId));
+					}
+					for (Id actionId : toRemove) {
+						opportunitiesToDelete.add(oppId);
+						activitiesToDelete.add(actionId);
+						thisOppActions.add(actionId);
+					}
+					if (!thisOppActions.isEmpty()) oppAndActionsToDelete.put(oppId, thisOppActions);
+				}
+			}
+			if (!oppAndActionsToDelete.isEmpty()) {
+				for (ApplicationsActivities__c activity : [SELECT Id, OpportunityId__c, ActionID__c
+				                                           FROM ApplicationsActivities__c
+				                                           WHERE OpportunityId__c IN :opportunitiesToDelete
+				                                           AND ActionID__c IN :activitiesToDelete]) {
+					if (oppAndActionsToDelete.get(activity.OpportunityId__c).contains(activity.ActionID__c)) toDelete.add(activity);
+				}
+			}
+			SavePoint save = Database.setSavepoint();
+			try {
+				if (!toInsert.isEmpty()) insert toInsert;
+				if (!toDelete.isEmpty()) delete toDelete;
+			} catch (Exception ex) {
+				System.debug(ex.getMessage());
+				Database.rollback(save);
+			}
+		}
+
+	}
+
 	public static Map<String, String> generateAppNames(List<Opportunity> opportunities) {
 		Map<String, String> result			= new Map<String, String>();
 		Map<String, Set<Id>> oppAndActions	= new Map<String, Set<Id>>();
@@ -42,6 +106,16 @@ public class OpportunityMethods {
 			if (opp.Debt__c <= 0 && opp.IsPartlyPassed__c == true)	opp.StageName = 'Мероприятие пройдено частично';
 			if (opp.Debt__c <= 0 && opp.IsComplete__c == true)		opp.StageName = 'Мероприятие пройдено';
 		}
+	}
+
+	public static void creteApplicationsActivities(List<Opportunity> opportunities) {
+		ApplicationsActivitiesManager manager = new ApplicationsActivitiesManager();
+		manager.doCrete(opportunities);
+	}
+
+	public static void updateApplicationsActivities(Map<Id, Opportunity> oldOpportunities, Map<Id, Opportunity> newOpportunities) {
+		ApplicationsActivitiesManager manager = new ApplicationsActivitiesManager();
+		manager.doUpdate(oldOpportunities, newOpportunities);
 	}
 
 	public static List<OpportunityLineItem> createOpportunityLineItems(List<Opportunity> opportunities, List<Id> productIds) {
@@ -120,31 +194,6 @@ public class OpportunityMethods {
             }
 		}
 		return result;
-	}
-
-	public static void creteApplicationsActivities(List<Opportunity> opportunities) {
-		List<ApplicationsActivities__c> toInsert = new List<ApplicationsActivities__c>();
-		for (Opportunity opp : opportunities) {
-			if (opp.ActionIds__c != null) {
-				for (String actionId : parceOpportunityActionIds(opp.ActionIds__c)) {
-					toInsert.add(new ApplicationsActivities__c(ActionID__c = actionId, OpportunityId__c = opp.Id));
-				}
-			}
-		}
-		if (!toInsert.isEmpty()) insert toInsert;
-	}
-
-	public static void updateApplicationsActivities(Map<Id, Opportunity> oldOpportunities, Map<Id, Opportunity> newOpportunities) {
-		List<ApplicationsActivities__c>	= new List<ApplicationsActivities__c>();
-		List<Id> opportunitiesToDelete	= new List<Id>();
-		List<Id> activitiesToDelete		= new List<Id>();
-		for (Id oppId : oldOpportunities.values()) {
-			Set<Id> oldActions = parceOpportunityActionIds(oldOpportunities.get(oppId).ActionIds__c);
-			Set<Id> newActions = parceOpportunityActionIds(newOpportunities.get(oppId).ActionIds__c);
-			if (!oldActions.isEmpty() && oldActions != newActions) {
-				
-			}
-		}
 	}
 
     public static void createAccountRoleForInsert(List<Opportunity> opps, String actionName, Decimal role) {

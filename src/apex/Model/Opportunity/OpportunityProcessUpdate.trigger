@@ -75,6 +75,10 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 	    }
 	    delete [SELECT Id FROM OpportunityLineItem WHERE OpportunityId IN :opportunityIds2];
 	    insert OpportunityMethods.createOpportunityLineItems(opportunities, productIds);														// SELF INVOCATION
+	    if (!OpportunityMethods.CARDS_DONE) {
+	    	OpportunityMethods.CARDS_DONE = true;
+		    CardsCreator.processOpportunities(trigger.oldMap, trigger.newMap);
+	    }
 
 	    if (!toInsert.isEmpty()) insert toInsert;																								// HERE HELL BEGINS
 	}

@@ -1,8 +1,8 @@
 trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 
 	if (trigger.isBefore) {
-		List<Id> listClientsIdAll = new List<Id>();
-        Map<Id, Account> clientsMap = new Map<Id, Account>();
+		List<Id> listClientsIdAll	= new List<Id>();
+        Map<Id, Account> clientsMap	= new Map<Id, Account>();
         for (Opportunity opp : trigger.new) {
             opp.Name = 'temp';
             listClientsIdAll.add(opp.AccountID);
@@ -68,6 +68,10 @@ trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 	    }
 	    insert OpportunityMethods.createOpportunityLineItems(opportunities, productIds);												// ONE MORE MEGA FAIL !!!!!!!!!
 		OpportunityMethods.creteApplicationsActivities(trigger.new);																	// YEAP, MEGA FAIL AGAIN !!!!!!!!!
+	    if (!OpportunityMethods.CARDS_DONE) {
+	    	OpportunityMethods.CARDS_DONE = true;
+	    	CardsCreator.processOpportunities(trigger.new);
+	    }
 
 		try {																															// ??????
 		    for (ProductRoles__c par : ProductRoles__c.getAll().values()) {

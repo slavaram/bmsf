@@ -114,7 +114,7 @@ global class OpportunityEntity {
 		certificate		= (thisOpportunity.CardId__c == null ? 'none' : thisOpportunity.CardId__c);
 		certificates	= new List<SelectOption>();
 		hasSertificates	= false;
-		accessible			= (UserInfo.getProfileId() == '00eb0000000YHNTAA4' || UserInfo.getProfileId() == '00eb0000000YHNTAA4' ? true : false);
+		accessible			= (UserInfo.getProfileId() == '00eb0000000YHNTAA4' || UserInfo.getUserId() == '005b0000000OwStAAK' ? true : false);
 		String productRegex	= '%' + thisOpportunity.ProductId__c + '%';
 		List<Card__c> cards = [SELECT Id, EndDate__c, SubType__c, Products__c
 		                       FROM Card__c

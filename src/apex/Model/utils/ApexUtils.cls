@@ -55,7 +55,7 @@ public class ApexUtils {
 
 	public static String dateToString(Date dateValue) {
 		String result = '';
-		if (dateValue == null) return '01 января 1000';
+		if (dateValue == null) return '01.01.2001';
 		Integer day = dateValue.day();
 		Integer month = dateValue.month();
 		Integer year = dateValue.year();

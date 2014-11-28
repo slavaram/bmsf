@@ -4,8 +4,8 @@ public class SchedulableManager {
 
 	public static void runAllJobs() {
 		SavePoint save = Database.setSavepoint();
-		if (!Schedulable_MGCardsManager.run() ||
-				!Schedulable_CheckActiveCampaigns.run() ||
+		if (!Schedulable_CheckActiveCampaigns.run() ||
+				!CardTasksScheduler.run() ||
 				!OppOwnerAutoChanger.run() ||
 				!Schedulable_RefreshOpportunities.run() ||
 				!StatisticCreator.run() ||
@@ -20,8 +20,8 @@ public class SchedulableManager {
 
 	public static void abortAllJobs() {
 		SavePoint save = Database.setSavepoint();
-		if (!Schedulable_MGCardsManager.abort() ||
-				!Schedulable_CheckActiveCampaigns.abort() ||
+		if (!Schedulable_CheckActiveCampaigns.abort() ||
+				!CardTasksScheduler.abort() ||
 				!OppOwnerAutoChanger.abort() ||
 				!Schedulable_RefreshOpportunities.abort() ||
 				!StatisticCreator.abort() ||

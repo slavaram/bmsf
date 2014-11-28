@@ -104,8 +104,11 @@
 				<apex:outputLabel value="Ожидаемая дата оплаты"></apex:outputLabel>
 				<apex:inputField value="{!Controller.thisOpportunity.ExpectedPayDate__c}"></apex:inputField>
 			</apex:pageBlockSectionItem>
-			<apex:inputfield value="{!Controller.thisOpportunity.LoanStatus__c}" rendered="{!IF($User.Id == '005b0000000PBmZ' || $User.Id == '005b0000000v9gM' || $Profile.Id == '00eb0000000YHNT', true, false)}"/>
-			<apex:outputField value="{!Controller.thisOpportunity.LoanStatus__c}" rendered="{!IF($User.Id != '005b0000000PBmZ' && $User.Id != '005b0000000v9gM' && $Profile.Id != '00eb0000000YHNT', true, false)}"/>
+			<apex:inputfield value="{!Controller.thisOpportunity.LoanStatus__c}" rendered="{!$User.Id == '005b0000000PBmZ' || $User.Id == '005b0000000v9gM' || $Profile.Id == '00eb0000000YHNT'}"/>
+			<apex:outputField value="{!Controller.thisOpportunity.LoanStatus__c}" rendered="{!$User.Id != '005b0000000PBmZ' && $User.Id != '005b0000000v9gM' && $Profile.Id != '00eb0000000YHNT'}"/>
+			<apex:selectList label="Используемый сертификат" value="{!Controller.certificate}" size="1" multiselect="false" rendered="{!Controller.accessible && Controller.hasSertificates}">
+				<apex:selectOptions value="{!Controller.certificates}"/>
+			</apex:selectList>
 
 			<apex:pageBlockSectionItem >
 				<apex:outputLabel value="Заморозка" for="Freezing"/>

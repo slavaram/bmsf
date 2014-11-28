@@ -69,7 +69,6 @@ trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 	    insert OpportunityMethods.createOpportunityLineItems(opportunities, productIds);												// ONE MORE MEGA FAIL !!!!!!!!!
 		OpportunityMethods.creteApplicationsActivities(trigger.new);																	// YEAP, MEGA FAIL AGAIN !!!!!!!!!
 	    if (!OpportunityMethods.CARDS_DONE) {
-	    	OpportunityMethods.CARDS_DONE = true;
 	    	CardsCreator.processOpportunities(trigger.new);
 	    }
 

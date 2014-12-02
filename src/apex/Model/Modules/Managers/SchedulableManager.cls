@@ -9,7 +9,7 @@ public class SchedulableManager {
 				!OppOwnerAutoChanger.run() ||
 				!Schedulable_RefreshOpportunities.run() ||
 				!StatisticCreator.run() ||
-				!Update_MG_Members.run() ||
+				!CardsScheduler.run() ||
 				!DeactivateUser.run() ||
 				!OpportunityRelationshipManager.run() ||
 				!PromoCodeManager.run()) {
@@ -25,7 +25,7 @@ public class SchedulableManager {
 				!OppOwnerAutoChanger.abort() ||
 				!Schedulable_RefreshOpportunities.abort() ||
 				!StatisticCreator.abort() ||
-				!Update_MG_Members.abort() ||
+				!CardsScheduler.abort() ||
 				!DeactivateUser.abort() ||
 				!OpportunityRelationshipManager.abort() ||
 				!PromoCodeManager.abort()) {

@@ -26,16 +26,12 @@ public class OpportunityMethods {
 			for (Id oppId : oldOpportunities.keySet()) {
 				Set<Id> oldActions = parceOpportunityActionIds(oldOpportunities.get(oppId).ActionIds__c);
 				Set<Id> newActions = parceOpportunityActionIds(newOpportunities.get(oppId).ActionIds__c);
-				System.debug('old -> ' + oldActions);
-				System.debug('new -> ' + newActions);
 				if ((!oldActions.isEmpty() || !newActions.isEmpty()) && oldActions != newActions) {
 					Set<Id> thisOppActions	= new Set<Id>();
 					Set<Id> toAdd			= new Set<Id>(newActions);
 					Set<Id> toRemove		= new Set<Id>(oldActions);
 					toAdd.removeAll(oldActions);
 					toRemove.removeAll(newActions);
-					System.debug('toAdd -> ' + toAdd);
-					System.debug('toRemove -> ' + toRemove);
 					for (Id actionId : toAdd) {
 						toInsert.add(new ApplicationsActivities__c(ActionID__c = actionId, OpportunityId__c = oppId));
 					}

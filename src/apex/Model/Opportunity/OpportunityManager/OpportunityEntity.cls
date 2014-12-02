@@ -280,12 +280,14 @@ global class OpportunityEntity {
 					if (newProducts.contains(';;')) newProducts.replace(';;', ';');
 				}
 				update new Card__c(Id = newCardId, Used__c = (String.isBlank(newProducts) ? true : false), Products__c = newProducts);
-				thisOpportunity.StageName = 'Оплачено';
+				thisOpportunity.StageName			= 'Оплачено';
+				thisOpportunity.ReasonRefusal__c	= 'Сертификат';
 			}
 			if (oldCardId != null) {
 				String newProducts = (String.isBlank(availableCards.get(oldCardId).Products__c) ? '' : availableCards.get(oldCardId).Products__c + ';') + choise;
 				update new Card__c(Id = oldCardId, Used__c = false, Products__c = newProducts);
-				thisOpportunity.StageName = 'Клиент думает';
+				thisOpportunity.StageName			= 'Клиент думает';
+				thisOpportunity.ReasonRefusal__c	= null;
 			}
 			thisOpportunity.CardId__c = newCardId;
 		}

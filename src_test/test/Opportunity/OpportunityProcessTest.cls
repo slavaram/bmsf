@@ -1,7 +1,7 @@
 @isTest
-public class OpportunityProcessTest {
+class OpportunityProcessTest {
 
-	public testmethod static void test() {
+	static testmethod void test() {
 		Account acc = new Account(Name = 'Test acc');
 		insert acc;
 		Action__c action = new Action__c(Name = 'Test action');

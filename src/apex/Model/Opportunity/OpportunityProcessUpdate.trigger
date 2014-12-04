@@ -10,7 +10,7 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 		List<sObject> toInsert = new List<sObject>();
 		if (!OpportunityMethods.DONE) {
 			OpportunityMethods.DONE = true;
-			OpportunityMethods.updateApplicationsActivities(trigger.oldMap, trigger.newMap);															// SELF INVOCATION
+			OpportunityMethods.updateApplicationsActivities(trigger.oldMap, trigger.newMap);
 		}
 
 		List<id> opportunityIds = new List<id>();
@@ -33,9 +33,9 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 		                                              FROM ApplicationsActivities__c
 		                                              WHERE OpportunityId__c IN :trigger.newMap.keySet()
 		                                              AND OpportunityId__r.StageName IN ('Условно оплачена', 'Оплачено', 'Частичная оплата')];
-		update activities;																														// SELF INVOCATION
+		update activities;
 		for (ProductRoles__c par : ProductRoles__c.getAll().values()) {
-		    OpportunityMethods.createAccountRoleForUpdate(activities, par.ProductName__c, par.RoleNumber__c);									// ?????
+		    OpportunityMethods.createAccountRoleForUpdate(activities, par.ProductName__c, par.RoleNumber__c);									// working wrong !
 		}
 
 		for (Opportunity oldOpp : trigger.old) {
@@ -74,12 +74,12 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 	        }
 	    }
 	    delete [SELECT Id FROM OpportunityLineItem WHERE OpportunityId IN :opportunityIds2];
-	    insert OpportunityMethods.createOpportunityLineItems(opportunities, productIds);														// SELF INVOCATION
+	    insert OpportunityMethods.createOpportunityLineItems(opportunities, productIds);
 	    if (!OpportunityMethods.CARDS_DONE) {
 		    CardsCreator.processOpportunities(trigger.oldMap, trigger.newMap);
 	    }
 
-	    if (!toInsert.isEmpty()) insert toInsert;																								// HERE HELL BEGINS
+	    if (!toInsert.isEmpty()) insert toInsert;
 	}
 
 }

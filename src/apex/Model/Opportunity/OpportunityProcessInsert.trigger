@@ -66,13 +66,13 @@ trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 	    		productIds.add(opp.ProductId__c);
 	    	}
 	    }
-	    insert OpportunityMethods.createOpportunityLineItems(opportunities, productIds);												// ONE MORE MEGA FAIL !!!!!!!!!
-		OpportunityMethods.creteApplicationsActivities(trigger.new);																	// YEAP, MEGA FAIL AGAIN !!!!!!!!!
+	    insert OpportunityMethods.createOpportunityLineItems(opportunities, productIds);
+		OpportunityMethods.creteApplicationsActivities(trigger.new);
 	    if (!OpportunityMethods.CARDS_DONE) {
 	    	CardsCreator.processOpportunities(trigger.new);
 	    }
 
-		try {																															// ??????
+		try {																															// working wrong !
 		    for (ProductRoles__c par : ProductRoles__c.getAll().values()) {
 	            OpportunityMethods.createAccountRoleForInsert(trigger.new, par.ProductName__c, par.RoleNumber__c);
 	        }

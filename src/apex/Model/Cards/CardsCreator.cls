@@ -28,28 +28,36 @@ public class CardsCreator {
 		if (settings.isEmpty()) return;
 		List<Card__c> toInsert		= new List<Card__c>();
 		Map<Id, String> actionIds	= new Map<Id, Id>();
-		Map<Id, Id> citiesIds		= new Map<Id, Id>();
+		Map<Id, Id> cityIds		= new Map<Id, Id>();
 		for (Opportunity opp : opportunities) {
 			if (opp.ActionIds__c != null) actionIds.put(opp.Id, (opp.ActionIds__c.contains(';') ? opp.ActionIds__c.substringBefore(';') : opp.ActionIds__c));
 		}
 		for (Action__c action : [SELECT Id, CityId__c FROM Action__c WHERE Id IN :actionIds.values()]) {
-			citiesIds.put(action.Id, action.CityId__c);
+			cityIds.put(action.Id, action.CityId__c);
 		}
 		for (Opportunity opp : opportunities) {
 			CardProducts__c setting = settings.get(opp.ProductId__c);
 			if (setting != null) {
-				toInsert.add(new Card__c(Type__c			= setting.Type__c,
-										 SubType__c			= setting.SubType__c,
-										 StartDate__c		= opp.DateOfPayment__c,
-										 EndDate__c			= opp.DateOfPayment__c.addMonths((Integer) setting.MonthsDuration__c).addDays((Integer) setting.DaysDuration__c),
-										 OpportunityId__c	= opp.Id,
-										 AccountId__c		= opp.AccountId,
-										 CityId__c			= citiesIds.get(actionIds.get(opp.Id)),
-										 Products__c		= setting.Products__c));
+				Decimal count = (opp.countSeats__c == null ? 1 : opp.countSeats__c);
+				while (count > 0) {
+					toInsert.add(createCard(opp, cityIds.get(actionIds.get(opp.Id)), setting));
+					count--;
+				}
 			}
 		}
 		if (!toInsert.isEmpty()) insert toInsert;
     	OpportunityMethods.CARDS_DONE = true;
+	}
+
+	private static Card__c createCard(Opportunity opp, Id cityId, CardProducts__c setting) {
+		return new Card__c(Type__c			= setting.Type__c,
+						 SubType__c			= setting.SubType__c,
+						 StartDate__c		= opp.DateOfPayment__c,
+						 EndDate__c			= opp.DateOfPayment__c.addMonths((Integer) setting.MonthsDuration__c).addDays((Integer) setting.DaysDuration__c),
+						 OpportunityId__c	= opp.Id,
+						 AccountId__c		= opp.AccountId,
+						 CityId__c			= cityId,
+						 Products__c		= setting.Products__c);
 	}
 
 }

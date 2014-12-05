@@ -1,0 +1,13 @@
+<apex:component id="Signature" access="global">
+<apex:attribute access="global" type="User" name="manager" description=""/>
+    <span style="font-family: georgia, serif; font-size: 16px;">С уважением,<br />
+        <br />
+        Ваш личный консультант БМ, <br />
+        <br />
+        {!$User.LastName} {!$User.FirstName}<br />
+        <br />
+        Тел.: 8 (800) 333-53-94, +7 (495) 215-06-06 {!if( not(isBlank($User.Extension)), 'доб. '&$User.Extension, '') }<br/>
+        <br/>
+        E-mail: <a href="mailto:info@molodost.bz">info@molodost.bz</a>
+    </span>
+</apex:component>

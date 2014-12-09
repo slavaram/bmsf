@@ -11,7 +11,15 @@ global class BatchJob implements Database.Batchable<sObject> {
 	}
 
 	global void execute(Database.BatchableContext context, List<Account> accounts) {
-		// TODO
+		Map<Id, Card__c> cards = new Map<Id, Card__c>();
+		for (Card__c card : [SELECT Id, AccountId__c FROM Card__c WHERE Type__c IN ('Зеленая', 'Золотая', 'Черная') AND StartDate__c < TODAY AND EndDate__c >= TODAY]) {
+			cards.put(card.AccountId__c, card);
+		}
+		for (Account acc : accounts) {
+			Card__c card = cards.get(acc.Id);
+			acc.MasterGroup__c = (card == null ? false : true);
+		}
+		update accounts;
 	}
 
 	global void finish(Database.BatchableContext context) {

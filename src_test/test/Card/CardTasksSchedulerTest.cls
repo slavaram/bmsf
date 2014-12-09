@@ -12,10 +12,10 @@ class CardTasksSchedulerTest {
 		insert accTwo;
 		insert accThree;
 		insert accFour;
-		Card__c cardOne		= new Card__c(AccountId__c = accOne.Id, Type__c = 'Карта', SubType__c = 'Зеленая', StartDate__c = System.today().addDays(-30), EndDate__c = System.today());
-		Card__c cardTwo		= new Card__c(AccountId__c = accTwo.Id, Type__c = 'Карта', SubType__c = 'Зеленая', StartDate__c = System.today().addDays(-30), EndDate__c = System.today().addDays(14));
-		Card__c cardThree	= new Card__c(AccountId__c = accThree.Id, Type__c = 'Карта', SubType__c = 'Черная', StartDate__c = System.today().addDays(-30), EndDate__c = System.today().addDays(-7));
-		Card__c cardFour	= new Card__c(AccountId__c = accFour.Id, Type__c = 'Карта', SubType__c = 'Черная', StartDate__c = System.today().addDays(-30), EndDate__c = System.today().addDays(3));
+		Card__c cardOne		= new Card__c(AccountId__c = accOne.Id, Type__c = 'Зеленая', StartDate__c = System.today().addDays(-30), EndDate__c = System.today());
+		Card__c cardTwo		= new Card__c(AccountId__c = accTwo.Id, Type__c = 'Зеленая', StartDate__c = System.today().addDays(-30), EndDate__c = System.today().addDays(14));
+		Card__c cardThree	= new Card__c(AccountId__c = accThree.Id, Type__c = 'Черная', StartDate__c = System.today().addDays(-30), EndDate__c = System.today().addDays(-7));
+		Card__c cardFour	= new Card__c(AccountId__c = accFour.Id, Type__c = 'Черная', StartDate__c = System.today().addDays(-30), EndDate__c = System.today().addDays(3));
 		insert cardOne;
 		insert cardTwo;
 		insert cardThree;

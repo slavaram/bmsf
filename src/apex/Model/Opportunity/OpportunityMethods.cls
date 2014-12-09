@@ -1,7 +1,8 @@
 public class OpportunityMethods {
 
-	public static Boolean DONE			= false;
-	public static Boolean CARDS_DONE	= false;
+	public static Boolean DONE				= false;
+	public static Boolean CARDS_DONE		= false;
+	public static Boolean CERTIFICATES_DONE	= false;
 
 	public class ApplicationsActivitiesManager {												// apex class that divides trigger and class scopes (trick against master-detail)
 

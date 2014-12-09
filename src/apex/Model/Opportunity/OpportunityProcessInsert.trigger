@@ -71,6 +71,9 @@ trigger OpportunityProcessInsert on Opportunity (before insert, after insert) {
 	    if (!OpportunityMethods.CARDS_DONE) {
 	    	CardsCreator.processOpportunities(trigger.new);
 	    }
+	    if (!OpportunityMethods.CERTIFICATES_DONE) {
+	    	CertificateCreator.processOpportunities(trigger.new);
+	    }
 
 		try {																															// working wrong !
 		    for (ProductRoles__c par : ProductRoles__c.getAll().values()) {

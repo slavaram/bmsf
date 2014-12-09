@@ -18,7 +18,7 @@ global class OpportunityEntity {
 	public Boolean hasSertificates			{get; private set;}
 	public List<SelectOption> certificates	{get; private set;}
 
-	private Map<Id, Card__c> availableCards = new Map<Id, Card__c>();
+	private Map<Id, Certificate__c> availableCertificates = new Map<Id, Certificate__c>();
 
 	global class Action {
 		global String actionId					{get; set;}
@@ -111,24 +111,23 @@ global class OpportunityEntity {
 	}
 
 	private void getCertificates() {
-		certificate		= (thisOpportunity.CardId__c == null ? 'none' : thisOpportunity.CardId__c);
-		certificates	= new List<SelectOption>();
-		hasSertificates	= false;
+		certificate			= (thisOpportunity.CertificateId__c == null ? 'none' : thisOpportunity.CertificateId__c);
+		certificates		= new List<SelectOption>();
+		hasSertificates		= false;
 		accessible			= (UserInfo.getProfileId() == '00eb0000000YHNTAA4' || UserInfo.getUserId() == '005b0000000OwStAAK' ? true : false);
 		String productRegex	= '%' + thisOpportunity.ProductId__c + '%';
-		List<Card__c> cards = [SELECT Id, EndDate__c, SubType__c, Products__c
-		                       FROM Card__c
-		                       WHERE Type__c = 'Сертификат'
-		                       AND AccountId__c = :thisOpportunity.AccountId
-		                       AND (Used__c = false OR Id = :thisOpportunity.CardId__c)
-		                       AND EndDate__c > TODAY
-		                       AND (Products__c LIKE :productRegex OR Id = :thisOpportunity.CardId__c)];
-		if (!cards.isEmpty()) {
+		List<Certificate__c> allCertificates = [SELECT Id, EndDate__c, Type__c, Products__c
+		                                        FROM Certificate__c
+		                                        WHERE AccountId__c = :thisOpportunity.AccountId
+		                                        AND (Used__c = false OR Id = :thisOpportunity.CertificateId__c)
+		                                        AND EndDate__c > TODAY
+		                                        AND (Products__c LIKE :productRegex OR Id = :thisOpportunity.CertificateId__c)];
+		if (!allCertificates.isEmpty()) {
 			certificates.add(new SelectOption('none', 'none'));
 			hasSertificates = true;
-			for (Card__c card : cards) {
-				certificates.add(new SelectOption(card.Id, card.SubType__c + ' ( до ' + ApexUtils.dateToString(card.EndDate__c) + ')'));
-				availableCards.put(card.Id, card);
+			for (Certificate__c certificate : allCertificates) {
+				certificates.add(new SelectOption(certificate.Id, certificate.Type__c + ' ( до ' + ApexUtils.dateToString(certificate.EndDate__c) + ')'));
+				availableCertificates.put(certificate.Id, certificate);
 			}
 		}
 	}
@@ -261,35 +260,35 @@ global class OpportunityEntity {
 	}
 
 	global pageReference save() {
-		String newCardId = (certificate == 'none' ? null : certificate);
-		String oldCardId = (thisOpportunity.CardId__c == null ? null : thisOpportunity.CardId__c);
-		if (newCardId != oldCardId) {
+		String newCertificateId	= (certificate == 'none' ? null : certificate);
+		String oldCertificateId	= (thisOpportunity.CertificateId__c == null ? null : thisOpportunity.CertificateId__c);
+		if (newCertificateId != oldCertificateId) {
 			String allProducts;
-			for (CardProducts__c setting : CardProducts__c.getAll().values()) {
-				if (setting.Type__c == 'Сертификат' && setting.Products__c.contains(thisOpportunity.ProductId__c)) allProducts = setting.Products__c;
+			for (CertificateProducts__c setting : CertificateProducts__c.getAll().values()) {
+				if (setting.Products__c.contains(thisOpportunity.ProductId__c)) allProducts = setting.Products__c;
 			}
-			String choise;
+			String choice;
 			for (String thisChoice : allProducts.split(';')) {
-				if (thisChoice.contains(thisOpportunity.ProductId__c)) choise = thisChoice;
+				if (thisChoice.contains(thisOpportunity.ProductId__c)) choice = thisChoice;
 			}
-			if (newCardId != null) {
-				String newProducts = availableCards.get(newCardId).Products__c.remove(choise);
+			if (newCertificateId != null) {
+				String newProducts = availableCertificates.get(newCertificateId).Products__c.remove(choice);
 				if (newProducts.length() > 0 ) {
 					if (newProducts.substring(0, 1) == ';') newProducts = newProducts.substringAfter(';');
-					if (newProducts.substring(newProducts.length(), newProducts.length() + 1) == ';') newProducts = newProducts.substringBeforeLast(';');
+					if (newProducts.substring(newProducts.length() - 1, newProducts.length()) == ';') newProducts = newProducts.substringBeforeLast(';');
 					if (newProducts.contains(';;')) newProducts.replace(';;', ';');
 				}
-				update new Card__c(Id = newCardId, Used__c = (String.isBlank(newProducts) ? true : false), Products__c = newProducts);
+				update new Certificate__c(Id = newCertificateId, Used__c = (String.isBlank(newProducts) ? true : false), Products__c = newProducts);
 				thisOpportunity.StageName			= 'Оплачено';
 				thisOpportunity.ReasonRefusal__c	= 'Сертификат';
 			}
-			if (oldCardId != null) {
-				String newProducts = (String.isBlank(availableCards.get(oldCardId).Products__c) ? '' : availableCards.get(oldCardId).Products__c + ';') + choise;
-				update new Card__c(Id = oldCardId, Used__c = false, Products__c = newProducts);
+			if (oldCertificateId != null) {
+				String newProducts = (String.isBlank(availableCertificates.get(oldCertificateId).Products__c) ? '' : availableCertificates.get(oldCertificateId).Products__c + ';') + choice;
+				update new Certificate__c(Id = oldCertificateId, Used__c = false, Products__c = newProducts);
 				thisOpportunity.StageName			= 'Клиент думает';
 				thisOpportunity.ReasonRefusal__c	= null;
 			}
-			thisOpportunity.CardId__c = newCardId;
+			thisOpportunity.CertificateId__c	= newCertificateId;
 		}
 		Boolean isError = setActionIds(actions);
 		if (isError) addErrors(new List<String>{'Необходимо выбрать все мероприятия'});

@@ -34,7 +34,7 @@ global class CardsScheduler implements Schedulable {
 	global void execute(SchedulableContext sc) {
 		List<Account> accounts = [SELECT Id, MasterGroup__c
 		                          FROM Account
-		                          WHERE Id IN (SELECT AccountId__c FROM Card__c WHERE StartDate__c <= :System.today().addDays(-1) AND EndDate__c > :System.today().addDays(-1))];
+		                          WHERE Id IN (SELECT AccountId__c FROM Card__c WHERE StartDate__c = YESTERDAY OR EndDate__c = YESTERDAY)];
 		for (Account acc : accounts) {
 			acc.MasterGroup__c = !acc.MasterGroup__c;
 		}

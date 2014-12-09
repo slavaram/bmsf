@@ -69,17 +69,16 @@ global class CardTasksScheduler implements Schedulable {
 	}
 
 	global void execute(SchedulableContext context) {
-		Map<Id, Card__c> lastCards			= new Map<Id, Card__c>();
-		List<Card__c> taskCards				= new List<Card__c>();
-		List<Card__c> before14cards			= new List<Card__c>();
-		List<Card__c> inDateCards			= new List<Card__c>();
-		List<Card__c> after7Cards			= new List<Card__c>();
-		List<Messaging.SingleEmailMessage> emails	= new List<Messaging.SingleEmailMessage>();
-		Id fromAddress = [SELECT Id FROM OrgWideEmailAddress WHERE Address = :FROM_ADDRESS].get(0).Id;
-		for (Card__c card : [SELECT Id, AccountId__c, AccountId__r.OwnerId, AccountId__r.Owner.ManagerId, OpportunityId__c, AccountId__r.PersonEmail, EndDate__c, SubType__c
+		Map<Id, Card__c> lastCards	= new Map<Id, Card__c>();
+		List<Card__c> taskCards		= new List<Card__c>();
+		List<Card__c> before14cards	= new List<Card__c>();
+		List<Card__c> inDateCards	= new List<Card__c>();
+		List<Card__c> after7Cards	= new List<Card__c>();
+		Id fromAddress				= [SELECT Id FROM OrgWideEmailAddress WHERE Address = :FROM_ADDRESS].get(0).Id;
+		List<Messaging.SingleEmailMessage> emails = new List<Messaging.SingleEmailMessage>();
+		for (Card__c card : [SELECT Id, AccountId__c, AccountId__r.OwnerId, AccountId__r.Owner.ManagerId, OpportunityId__c, AccountId__r.PersonEmail, EndDate__c, Type__c
 		                     FROM Card__c
-		                     WHERE Type__c = 'Карта'
-		                     AND SubType__c IN ('Зеленая', 'Черная', 'Золотая')
+		                     WHERE Type__c IN ('Зеленая', 'Черная', 'Золотая')
 		                     ORDER BY EndDate__c]) {
 			if (lastCards.get(card.AccountId__c) == null) {
 				lastCards.put(card.AccountId__c, card);
@@ -145,7 +144,7 @@ global class CardTasksScheduler implements Schedulable {
 			Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
 			email.setToAddresses(new List<String> {card.AccountId__r.PersonEmail});
 			email.setSaveAsActivity(false);
-			email.setHtmlBody(template.replace('[PLACEHOLDER]', (card.SubType__c == 'Зеленая' ? '3 месяца' : 'год')));
+			email.setHtmlBody(template.replace('[PLACEHOLDER]', (card.Type__c == 'Зеленая' ? '3 месяца' : 'год')));
 			email.setOrgWideEmailAddressId(fromAddress);
 			result.add(email);
 		}

@@ -1,15 +1,7 @@
 @isTest
-class CardsCreatorTest {
+class CertificateCreatorTest {
 
-	static testmethod void cardProcessTest() {
-		Account acc = new Account(Name = 'Test acc');
-		insert acc;
-		Card__c card = new Card__c(AccountId__c = acc.Id, StartDate__c = System.today(), EndDate__c = System.today().addDays(1), Type__c = 'Карта', SubType__c = 'Золотая');
-		insert card;
-		System.assertNotEquals(null, card.Id);
-	}
-
-	static testmethod void createCardsTest() {
+	static testmethod void createCertificatesTest() {
 		Account acc = new Account(Name = 'Test acc');
 		insert acc;
 		RecordType singleRecord	= [SELECT Id FROM RecordType WHERE DeveloperName = 'SingleRecord'].get(0);
@@ -20,13 +12,11 @@ class CardsCreatorTest {
 		insert entry;
 		Action__c action = new Action__c(Name = 'Test action two', StartDate__c = System.today().addDays(-7), EndDate__c = System.today());
 		insert action;
-		CardProducts__c cardProduct = new CardProducts__c(Name				= 'Test!',
-														  Type__c			= 'Сертификат',
-														  SubType__c		= 'Light',
-														  MonthsDuration__c	= 1,
-														  DaysDuration__c	= 1,
-														  ProductId__c		= product.Id,
-														  Products__c		= '');
+		CertificateProducts__c cardProduct = new CertificateProducts__c(Name				= 'Light',
+																	    MonthsDuration__c	= 1,
+																	    DaysDuration__c		= 1,
+																	    ProductId__c		= product.Id,
+																	    Products__c			= 'test');
 		insert cardProduct;
 		Opportunity opp = new Opportunity(AccountId		= acc.Id,
 										  ProductId__c	= product.Id,
@@ -40,11 +30,11 @@ class CardsCreatorTest {
 										TypeOfPayment__c	= 'testetse',
 										OpportunityID__c	= opp.Id);
 		insert pay;
-		OpportunityMethods.DONE 		= false;
-		OpportunityMethods.CARDS_DONE	= false;
-		opp.StageName					= 'Оплачено';
+		OpportunityMethods.DONE 				= false;
+		OpportunityMethods.CERTIFICATES_DONE	= false;
+		opp.StageName							= 'Оплачено';
 		update opp;
-		System.assert(0 != [SELECT Id FROM Card__c].size());
+		System.assert(0 != [SELECT Id FROM Certificate__c].size());
 	}
 
 }

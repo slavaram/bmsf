@@ -76,7 +76,10 @@ trigger OpportunityProcessUpdate on Opportunity (before update, after update) {
 	    delete [SELECT Id FROM OpportunityLineItem WHERE OpportunityId IN :opportunityIds2];
 	    insert OpportunityMethods.createOpportunityLineItems(opportunities, productIds);
 	    if (!OpportunityMethods.CARDS_DONE) {
-		    CardsCreator.processOpportunities(trigger.oldMap, trigger.newMap);
+	    	CardsCreator.processOpportunities(trigger.new);
+	    }
+	    if (!OpportunityMethods.CERTIFICATES_DONE) {
+	    	CertificateCreator.processOpportunities(trigger.new);
 	    }
 
 	    if (!toInsert.isEmpty()) insert toInsert;

@@ -1,7 +1,1 @@
-This is the enterprise project build on salesforce platform.
->>>>>IDE
-Eclipse
->>>>>Tools
-Ant (salesforce metadata api)
-
-For more information contact me via email "vyacheslav.ram@gmail.com"
+This is the salesforce project managed in file system. Build is configured to pack and unpack all classes when deploing and exporting from server. All this achieved with use of Salesforce Metadata API.
